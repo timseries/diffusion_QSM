@@ -1806,8 +1806,10 @@ bool loadDeltaB(DataSpec &dspec, usedtype *&DeltaB) {
 	
 	// check version
 	checkVersion(fptr, flgByteSwap);
+
 	// read in header
-	MPI_File_read(fptcar, buf, 11, MPI_DOUBLE, &status);
+	MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
+
 	// byte swap header if required
 	if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
 	
