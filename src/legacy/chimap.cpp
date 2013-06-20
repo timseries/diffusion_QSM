@@ -434,11 +434,11 @@ void Output::Init() {
 	tmpstr = (char*) calloc(1024, sizeof(char));
 	
 	// redirect stderr to error files
-	sprintf(tmpstr, "%s/err%03d.txt", outdir, rank);
-	if ((errfile = freopen(tmpstr, "w", stderr)) == NULL) {
-		printall("[%d] Could not redirect stderr\n", rank);
-		MPI_Abort(MPI_COMM_WORLD, 1);
-	}
+	// sprintf(tmpstr, "%s/err%03d.txt", outdir, rank);
+	// if ((errfile = freopen(tmpstr, "w", stderr)) == NULL) {
+	// 	printall("[%d] Could not redirect stderr\n", rank);
+	// 	MPI_Abort(MPI_COMM_WORLD, 1);
+	// }
 #ifdef DEBUG
 	printroot("   Output::Init : redirected stderr\n");
 #endif
@@ -1806,10 +1806,8 @@ bool loadDeltaB(DataSpec &dspec, usedtype *&DeltaB) {
 	
 	// check version
 	checkVersion(fptr, flgByteSwap);
-	
 	// read in header
-	MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
-	
+	MPI_File_read(fptcar, buf, 11, MPI_DOUBLE, &status);
 	// byte swap header if required
 	if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
 	
