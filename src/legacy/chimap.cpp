@@ -434,11 +434,11 @@ void Output::Init() {
 	tmpstr = (char*) calloc(1024, sizeof(char));
 	
 	// redirect stderr to error files
-	// sprintf(tmpstr, "%s/err%03d.txt", outdir, rank);
-	// if ((errfile = freopen(tmpstr, "w", stderr)) == NULL) {
-	// 	printall("[%d] Could not redirect stderr\n", rank);
-	// 	MPI_Abort(MPI_COMM_WORLD, 1);
-	// }
+	sprintf(tmpstr, "%s/err%03d.txt", outdir, rank);
+	if ((errfile = freopen(tmpstr, "w", stderr)) == NULL) {
+		printall("[%d] Could not redirect stderr\n", rank);
+		MPI_Abort(MPI_COMM_WORLD, 1);
+	}
 #ifdef DEBUG
 	printroot("   Output::Init : redirected stderr\n");
 #endif
@@ -1033,7 +1033,7 @@ void Kernel::CreateSphericalKernel(DataSpec &dspec) {
 void Kernel::CreateCylindricalKernel(DataSpec &dspec) {
 	// returns the number of non-zeros
 	
-	usedtype	a = 0.47;
+	usedtype	a = 0.475;
 	usedtype	CYL2alpha = 2*a;
 	usedtype	CYL3alpha = 3*a;
 	usedtype	CYL4alpha3 = 1/(4*a*a*a);
@@ -1277,7 +1277,7 @@ bool FullPass(models &model, DataSpec &dspec, usedtype *&DeltaB, bool *&mask, Ke
 	x = (usedtype*) calloc(dspec.nFG, sizeof(usedtype));
 	
  	//==================================================================================================================
-	// Create foreground indices array
+	// Create foreground indices array and initialise x
 	printroot("   Creating foreground indices array ...\n");
 	FGindices = (int*) calloc(dspec.N, sizeof(int));
 	o = 0;
@@ -1526,6 +1526,131 @@ bool FullPass(models &model, DataSpec &dspec, usedtype *&DeltaB, bool *&mask, Ke
 			Ax_b[p] -= DeltaB[p];
 		}
 					
+		/*pz = dStart / dspec.zoffset;
+		py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+		px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;
+		for (p = dStart; p < dEnd; p++) { // voxel position where change in b occurs = row of A
+			
+			px++;
+			if (px == dspec.size[0]) {
+				px = 0;
+				py++;
+				if (py == dspec.size[1]) {
+					py = 0;
+					pz++;
+				}
+			}
+			
+			for (o = 0; o < dspec.nFG; o++) { // voxel containing the source of the change (ie the sphere or cylinder) = column of A
+				
+				if (x[o] != 0) {
+					oz = FGindices[o] / dspec.zoffset;
+					rz = pz - oz;					
+					if (rz >= -kernel.halfsize && rz <= kernel.halfsize) {
+						
+						oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+						ry = py - oy;
+						if (ry >= -kernel.halfsize && ry <= kernel.halfsize) {
+							
+							ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+							rx = px - ox;
+							if (rx >= kernel.halfsize && rx <= kernel.halfsize) {
+								
+								// Linear system
+								int mix = kernel.modelmap.mask[FGindices[o]];
+								if (mix == -1) { // spherical kernel
+									Ax_b[p - dStart] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * x[o];
+								}
+								else if (PreCalcCylinders) {
+									Ax_b[p - dStart] += cylColumns[mix*dN + p-dStart] * x[o];
+								}
+								else {
+									if (rx == 0 && ry == 0 && rz == 0) {
+										Ax_b[p - dStart] += kernel.ctr[mix] * x[o];
+									}
+									else {
+										Ax_b[p - dStart] += kernel.GetCyl(mix, rx, ry, rz) * x[o];
+									}
+								}
+								
+								// Laplacian
+								if (rx == dn){
+									if (ry == dn) {
+										if (rz == dz)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+									else if (ry == dz) {
+										if (rz == dn)
+											Dx[p-dStart] += D3_96 * x[o];
+										else if (rz == dz)
+											Dx[p-dStart] += D10_96 * x[o];
+										else if (rz == dp)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+									else if (ry == dp) {
+										if (rz == dz)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+								}
+								else if (rx == dz) {
+									if (ry == dn) {
+										if (rz == dn)
+											Dx[p-dStart] += D3_96 * x[o];
+										else if (rz == dz)
+											Dx[p-dStart] += D10_96 * x[o];
+										else if (rz == dp)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+									else if (ry == dz) {
+										if (rz == dn)
+											Dx[p-dStart] += D10_96 * x[o];
+										else if (rz == dz)
+											Dx[p-dStart] -= x[o];
+										else if (rz == dp)
+											Dx[p-dStart] += D10_96 * x[o];
+									}
+									else if (ry == dp) {
+										if (rz == dn)
+											Dx[p-dStart] += D3_96 * x[o];
+										else if (rz == dz)
+											Dx[p-dStart] += D10_96 * x[o];
+										else if (rz == dp)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+									
+								}
+								else if (rx == dp) {
+									if (ry == dn) {
+										if (rz == dz)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+									else if (ry == dz) {
+										if (rz == dn)
+											Dx[p-dStart] += D3_96 * x[o];
+										else if (rz == dz)
+											Dx[p-dStart] += D10_96 * x[o];
+										else if (rz == dp)
+											Dx[p-dStart] += D3_96 * x[o];
+									}
+									else if (ry == dp) {
+										if (rz == dz)
+											Dx[p-dStart] += D3_96 * x[o];
+									}						
+								}
+							}
+						}
+					}
+				}				
+			}
+			
+			Ax_b[p-dStart] -= darray[p - dStart];
+			
+		}*/
+		
+		//		if (rank == 0) {
+		//			printf("Ax_b[0] = %0.6e\n", Ax_b[0]);
+		//		}
+		//		
 //		MPI_File fptr;
 //		sprintf(fname, "%s/Dx.bin", outdir);
 //		MPI_File_open(MPI_COMM_WORLD, fname, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &fptr);
@@ -1806,10 +1931,10 @@ bool loadDeltaB(DataSpec &dspec, usedtype *&DeltaB) {
 	
 	// check version
 	checkVersion(fptr, flgByteSwap);
-
+	
 	// read in header
 	MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
-
+	
 	// byte swap header if required
 	if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
 	

@@ -126,7 +126,8 @@ end
 
 %% Write data to file, save data
 WriteChiMapDataToFile('data.bin', deltab, B0, B0dir, [1 1 1])
-WriteChiMapArrayToFile('mask.bin', bordervoxels)
+%WriteChiMapArrayToFile('mask.bin', bordervoxels)
+WriteChiMapArrayToFile('mask.bin', bordermask)
 WriteChiMapArrayToFile('models.bin', models)
 
 save simulation.mat
