@@ -280,6 +280,7 @@ int	main(int argc, char** args) {
 	printroot("\n------------------------------------------\n");
 	printroot("MPI Environment\n");
 	printroot("Number of processes: %d\n", size);
+	printroot("This rank: %d\n", rank);
 	
 	models					model;
 	
@@ -352,9 +353,11 @@ int	main(int argc, char** args) {
 	myout.DistrArray(deltab, dspec.end - dspec.start, 3, dspec.size, "deltab");
 	
 	// LOAD MASK
+
 	if (!loadMask(dspec, mask)) goto exitnow;
 	myout.LocalArray(0, mask, 3, dspec.size, "mask");
 	
+
 	// LOAD MODELMASK
 	if (!kernel.modelmap.Process(dspec)) goto exitnow;
 	
@@ -407,15 +410,24 @@ int	main(int argc, char** args) {
 exitnow:
 	printroot("\n------------------------------------------\n");
 	printroot("CLEANING UP\n");
+	// if (rank > 0) {
+	//   MPI_Recv(NULL, 0, MPI_CHAR, rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	// }
 	printroot("Freeing memory ...\n");
 	if (deltab != NULL)			free(deltab);
+	printroot("Freed deltab ...\n");
 	if (chi != NULL)			free(chi);
+	printroot("Freed chi ...\n");
 	if (mask != NULL)			free(mask);
+	printroot("Freed mask ...\n");
 	kernel.close();
 	printroot("Finished\n", rank); fflush(stdout);
 	
 	myout.Close();
-	
+	printf("finished rank=%d\n",rank);
+	// if (rank < size -1) {
+	//   MPI_Send(NULL, 0, MPI_CHAR, rank+1, 0, MPI_COMM_WORLD);
+	//     }
 	MPI_Finalize();
 }
 
@@ -707,10 +719,11 @@ void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, co
 	int			n;
 	usedtype	*array0 = NULL;
 	MPI_Request req[2];
-	
-	// Send data to process 0
-	MPI_Isend(&localsize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &req[0]);
-	MPI_Isend(array, localsize, MPI_USEDTYPE, 0, 1, MPI_COMM_WORLD, &req[1]);
+	// Send data to process 0		  
+	if (rank>0){
+	  MPI_Isend(&localsize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &req[0]);
+	  MPI_Isend(array, localsize, MPI_USEDTYPE, 0, 1, MPI_COMM_WORLD, &req[1]);
+	}
 		
 	// On process 0, receive and write data to file.
 	if (rank == 0) {
@@ -719,15 +732,35 @@ void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, co
 		
 		// Receive array length and data from each process in order, and write to binary file
 		for (int p = 0; p < size; p++) {
+		  printroot( "receiving 1 of 2 ...\n");
+		  printroot("local size: %d\n", localsize);
+		  printroot("mpi_int: %d\n", MPI_INT);
+		  printroot("n: %d\n", n);
+		  printroot("p: %d\n", p);
+		  printroot("MPI_COMM_WORLD: %d\n", MPI_COMM_WORLD);
+		  if (p>0){
 			MPI_Recv(&localsize, 1, MPI_INT, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		  
 			
 			// realloc memory if the localsize has increased
 			if (n < localsize) {
+			  printroot( "reallocating  ...\n");
 				array0 = (usedtype*) realloc(array0, localsize*sizeof(usedtype));
 				n = localsize;
 			}
+			printroot( "receiving 2 of 2 ...\n");
+
 			MPI_Recv(array0, localsize, MPI_USEDTYPE, p, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		  }
+		  else{
+		    array0=array;
+		  }
+			printroot( "writing 1 of 2 ...\n");
+
 			MPI_File_write(binfile, array0, localsize, MPI_USEDTYPE, MPI_STATUS_IGNORE);
+			if (p==0){
+			  array0=NULL;
+			}
 		}
 		
 		
@@ -746,7 +779,8 @@ void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, co
 		else {
 			sprintf(tmpstr, "%s = fread(TmpChiMapOut.fid, %d, TmpChiMapOut.precision);\n", arrayname, n);
 		}
-		
+			printroot( "writing 2 of 2 ...\n");
+
 		MPI_File_write(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
 	}
 	
@@ -754,8 +788,11 @@ void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, co
 	if (array0 != NULL)	free(array0);
 	
 	// Wait for requests to complete
-	MPI_Waitall(2, req, MPI_STATUSES_IGNORE);
-	
+	printroot( "waiting ...\n");
+	if (rank>0){
+	  MPI_Waitall(2, req, MPI_STATUSES_IGNORE);
+	}
+	printroot( "done waiting ...\n");
 	// THE FOLLOWING IS THE TRUE MPI IMPLEMENTATION. DUE TO A BUG ON AVOCA, THIS HAS BEEN REPLACED BY THE ABOVE
 	/*
 	int n = 1;
