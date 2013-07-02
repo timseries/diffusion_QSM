@@ -440,7 +440,7 @@ exitnow:
 	//     }
 	MPI_Finalize();
 #ifdef hpct
-  hpmfTerminate();
+  hpmTerminate();
   hpmStop("main function");
   hpmStop("fullpass function");
 #endif
