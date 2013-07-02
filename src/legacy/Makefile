@@ -13,14 +13,21 @@ EXECUTABLE	= chimap
 
 
 ifdef bluegene
-CC =mpixlcxx_r
+CC = mpixlcxx_r
 endif
 
-ifdef hpct
-CPPFLAGS += -Dhpct
+ifdef hpm
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 CPPFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
 CPPFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm -qsmp=omp
+CPPFLAGS += -Dhpm
+endif
+
+ifdef mpitrace
+CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
+CPPFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
+CPPFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lmpitrace
+CPPFLAGS += -Dmpitrace
 endif
 
 ifdef profile
