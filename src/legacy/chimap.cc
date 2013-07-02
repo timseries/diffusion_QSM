@@ -5,6 +5,9 @@
 #include <float.h>
 #include <math.h>
 #include "mpi.h"
+#ifdef hpct
+#include <hpm.h>
+#endif
 
 #define LOADDATAVERSION 1
 
@@ -271,7 +274,11 @@ Output			myout;
 ArgHandler		arghandler;
 
 int	main(int argc, char** args) {	
-	
+  // Begin profiling here
+#ifdef hpct
+  hpmInit();
+  hpmStart("main function");
+#endif
 	MPI_Init(&argc, &args);
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -388,6 +395,9 @@ int	main(int argc, char** args) {
 		
 	//==============================================================================================================================
 	// FULL DATA PROCESSING
+#ifdef hpct
+  hpmStart("fullpass function");
+#endif
 	
 	if (!FullPass(model, dspec, deltab, mask, kernel, chi)) goto exitnow;
 	
@@ -429,6 +439,12 @@ exitnow:
 	//   MPI_Send(NULL, 0, MPI_CHAR, rank+1, 0, MPI_COMM_WORLD);
 	//     }
 	MPI_Finalize();
+#ifdef hpct
+  hpmfTerminate();
+  hpmStop("main function");
+  hpmStop("fullpass function");
+#endif
+
 }
 
 //==============================================================================================================================

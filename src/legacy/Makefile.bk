@@ -11,25 +11,21 @@ SOURCES		= chimap.cc
 OBJECTS		= $(SOURCES:.cc=.o)
 EXECUTABLE	= chimap
 
-
-ifdef bluegene
-CC = mpicxx_r
-endif
-
-ifdef hpct
-CPPFLAGS += -Dhpct
-CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
-CPPFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
-CPPFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm -qsmp=omp
-endif
-
-ifdef profile
-CPPFLAGS += -pg
-LDFLAGS += -pg
-endif
-
-
 all: $(SOURCES) $(EXECUTABLE)
+
+x86: $(SOURCES) $(EXECUTABLE)
+
+bluegene: CC = mpicxx_r
+bluegene: $(SOURCES) $(EXECUTABLE)
+
+bluegene_profile: CC = mpicxx_r
+bluegene_profile: CPPFLAGS += -pg
+bluegene_profile: LDFLAGS += -pg
+bluegene_profile: $(SOURCES) $(EXECUTABLE)
+
+x86_profile: CPPFLAGS += -pg
+x86_profile: LDFLAGS += -pg
+x86_profile: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS) $(LIBS) 
