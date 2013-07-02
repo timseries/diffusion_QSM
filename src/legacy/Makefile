@@ -13,7 +13,7 @@ EXECUTABLE	= chimap
 
 
 ifdef bluegene
-CC = mpicxx_r
+CC =mpixlcxx_r
 endif
 
 ifdef hpct
