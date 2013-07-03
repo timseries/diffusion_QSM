@@ -1,12 +1,12 @@
 clear all; close all; clc
 
 %% PARAMETERS - MODIFY THESE
-dx = 12;                       % Size of data in first dimension
+dx = 20;                       % Size of data in first dimension
 
-radius = 2;                    % Radius of cylinders/spheres
-N = 3;                         % Number of cylinders/spheres
-separation = 5;               % Separation between cylinder and sphere centres
-chi_in = 4e-7:-1e-7:1e-7;      % Susceptibility of the cylinders/spheres
+radius = 3;                    % Radius of cylinders/spheres
+N = 1;                         % Number of cylinders/spheres
+separation = 20;                % Separation between cylinder and sphere centres
+chi_in = 4e-7:-1e-7:4e-7;      % Susceptibility of the cylinders/spheres
 
 B0 = 4.7;                      % Magnetic B field (in Tesla)
 B0dir = [0 0 1];               % Magnetic B field direction (currently does [0 0 1] only)
@@ -35,11 +35,13 @@ datasize = [dx dy dz];         % Size of data
 cylaxis = [1 0 0];             % Cylinder axis
 
 % main arrays
-chi = zeros(dx,dy,dz);         % True susceptibility map
-deltab = zeros(dx,dy,dz);      % Change in B field map
-models = zeros(dx,dy,dz,3);    % Model map
+chi = zeros(dx,dy,dz,'single');         % True susceptibility map
+deltab = zeros(dx,dy,dz,'single');      % Change in B field map
+models = zeros(dx,dy,dz,3,'single');    % Model map
 bordermask = false(dx,dy,dz);
 bordermask(2:end-1,2:end-1,2:end-1) = true;
+mask = false(dx,dy,dz);
+mask(2:end-1,2:end-1,2:end-1) = true;
 
 % define (x,y,z) coordinates for each voxel
 [x y z] = ndgrid(-dx/2+0.5:dx/2-0.5, -dx/2+0.5:(dy-dx/2)-0.5, -dx/2+0.5:(dz-dx/2)-0.5);
@@ -126,8 +128,7 @@ end
 
 %% Write data to file, save data
 WriteChiMapDataToFile('data.bin', deltab, B0, B0dir, [1 1 1])
-%WriteChiMapArrayToFile('mask.bin', bordervoxels)
-WriteChiMapArrayToFile('mask.bin', bordermask)
+WriteChiMapArrayToFile('mask.bin', mask)
 WriteChiMapArrayToFile('models.bin', models)
 
 save simulation.mat
