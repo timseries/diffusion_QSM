@@ -1,0 +1,95 @@
+elapsed time from clock-cycles using freq = 1600.0 MHz
+-----------------------------------------------------------------
+MPI Routine                  #calls     avg. bytes      time(sec)
+-----------------------------------------------------------------
+MPI_Comm_size                     1            0.0          0.000
+MPI_Comm_rank                     1            0.0          0.000
+MPI_Recv                         30        12002.0          0.000
+MPI_Bcast                         1        96000.0          0.000
+MPI_Barrier                       1            0.0          0.000
+MPI_Allreduce                     4       335008.0         25.465
+MPI_File_close                    8            0.0          0.037
+MPI_File_open                     8            0.0          0.263
+MPI_File_read                    14       174870.3          0.144
+MPI_File_seek                     1            0.0          0.000
+MPI_File_write                   30        63951.8          0.110
+-----------------------------------------------------------------
+total communication time = 26.020 seconds.
+total elapsed time       = 362.458 seconds.
+
+-----------------------------------------------------------------
+Message size distributions:
+
+MPI_Recv                  #calls    avg. bytes      time(sec)
+                              15           4.0          0.000
+                              15       24000.0          0.000
+
+MPI_Bcast                 #calls    avg. bytes      time(sec)
+                               1       96000.0          0.000
+
+MPI_Allreduce             #calls    avg. bytes      time(sec)
+                               4      335008.0         25.465
+
+MPI_File_read             #calls    avg. bytes      time(sec)
+                               6           4.0          0.064
+                               1          32.0          0.001
+                               1          40.0          0.010
+                               1          88.0          0.001
+                               1       48000.0          0.002
+                               1       96000.0          0.002
+                               3      768000.0          0.064
+
+MPI_File_write            #calls    avg. bytes      time(sec)
+                               3           4.0          0.007
+                               2          40.0          0.004
+                               3          79.3          0.032
+                               1         208.0          0.001
+                              16       24000.0          0.028
+                               1       96000.0          0.019
+                               4      359504.0          0.018
+
+-----------------------------------------------------------------
+
+Communication summary for all tasks:
+
+  minimum communication time = 0.787 sec for task 11
+  median  communication time = 0.812 sec for task 7
+  maximum communication time = 26.020 sec for task 0
+
+taskid  Acoord  Bcoord  Ccoord  Dcoord  Ecoord  procid   total_comm(sec)
+     0       0       1       2       0       0       0        26.020
+     1       0       1       2       0       0       1        11.775
+     2       0       1       2       0       0       2         1.291
+     3       0       1       2       0       0       3         0.789
+     4       0       1       2       0       0       4         0.817
+     5       0       1       2       0       0       5         0.793
+     6       0       1       2       0       0       6         0.798
+     7       0       1       2       0       0       7         0.812
+     8       0       1       2       0       0       8         0.817
+     9       0       1       2       0       0       9         0.806
+    10       0       1       2       0       0      10         0.791
+    11       0       1       2       0       0      11         0.787
+    12       0       1       2       0       0      12         0.792
+    13       0       1       2       0       0      13         1.254
+    14       0       1       2       0       0      14        11.027
+    15       0       1       2       0       0      15        24.278
+
+
+MPI tasks sorted by communication time:
+taskid  Acoord  Bcoord  Ccoord  Dcoord  Ecoord  procid    total_comm(sec)
+    11       0       1       2       0       0      11         0.787
+     3       0       1       2       0       0       3         0.789
+    10       0       1       2       0       0      10         0.791
+    12       0       1       2       0       0      12         0.792
+     5       0       1       2       0       0       5         0.793
+     6       0       1       2       0       0       6         0.798
+     9       0       1       2       0       0       9         0.806
+     7       0       1       2       0       0       7         0.812
+     4       0       1       2       0       0       4         0.817
+     8       0       1       2       0       0       8         0.817
+    13       0       1       2       0       0      13         1.254
+     2       0       1       2       0       0       2         1.291
+    14       0       1       2       0       0      14        11.027
+     1       0       1       2       0       0       1        11.775
+    15       0       1       2       0       0      15        24.278
+     0       0       1       2       0       0       0        26.020
