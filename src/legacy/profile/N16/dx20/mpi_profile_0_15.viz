@@ -1,0 +1,172 @@
+<mpidata appname="MPI_Application" precision="Double"  showsecondkey="NO" trace="single_trace_0" summary="mpi_trace.0" >
+<ipdef>
+<datadef label="Count" id="0" listDisplay="true" />
+<datadef label="WallClock" id="1" listDisplay="true" />
+<datadef label="Transfered Bytes" id="2" listDisplay="true" />
+</ipdef>
+<ip task="15"     thread="(NULL)"     label="MPI_Comm_size_292"     file="chimap.cc"     path=""     start="292"     end= "292"     parent="main(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000002" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Comm_rank_293"     file="chimap.cc"     path=""     start="293"     end= "293"     parent="main(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000001" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_open_1984"     file="chimap.cc"     path=""     start="1984"     end= "1984"     parent="loadDeltaB(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.080780" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_2140"     file="chimap.cc"     path=""     start="2140"     end= "2140"     parent="checkEndianness(chimap.cc)">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.082806" />
+ <d  id="2" v="8.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_2159"     file="chimap.cc"     path=""     start="2159"     end= "2159"     parent="checkVersion(chimap.cc)">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.063506" />
+ <d  id="2" v="8.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_1997"     file="chimap.cc"     path=""     start="1997"     end= "1997"     parent="loadDeltaB(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.008758" />
+ <d  id="2" v="88.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_seek_2028"     file="chimap.cc"     path=""     start="2028"     end= "2028"     parent="loadDeltaB(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000003" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_2036"     file="chimap.cc"     path=""     start="2036"     end= "2036"     parent="loadDeltaB(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.010150" />
+ <d  id="2" v="8000.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_close_2044"     file="chimap.cc"     path=""     start="2044"     end= "2044"     parent="loadDeltaB(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.001462" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Isend_748"     file="chimap.cc"     path=""     start="748"     end= "748"     parent="DistrArray(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000026" />
+ <d  id="2" v="4.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Isend_749"     file="chimap.cc"     path=""     start="749"     end= "749"     parent="DistrArray(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000069" />
+ <d  id="2" v="4000.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Waitall_817"     file="chimap.cc"     path=""     start="817"     end= "817"     parent="DistrArray(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.026675" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Bcast_2110"     file="chimap.cc"     path=""     start="2110"     end= "2110"     parent="loadMask(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.075159" />
+ <d  id="2" v="16000.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_open_911"     file="chimap.cc"     path=""     start="911"     end= "911"     parent="Process(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.023949" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_921"     file="chimap.cc"     path=""     start="921"     end= "921"     parent="Process(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.047523" />
+ <d  id="2" v="40.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_942"     file="chimap.cc"     path=""     start="942"     end= "942"     parent="Process(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.042155" />
+ <d  id="2" v="128000.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_943"     file="chimap.cc"     path=""     start="943"     end= "943"     parent="Process(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.027486" />
+ <d  id="2" v="128000.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_read_944"     file="chimap.cc"     path=""     start="944"     end= "944"     parent="Process(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.008921" />
+ <d  id="2" v="128000.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_File_close_950"     file="chimap.cc"     path=""     start="950"     end= "950"     parent="Process(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000863" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Allreduce_1861"     file="chimap.cc"     path=""     start="1861"     end= "1861"     parent="FullPass(chimap.cc)">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.028625" />
+ <d  id="2" v="98496.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Allreduce_1862"     file="chimap.cc"     path=""     start="1862"     end= "1862"     parent="FullPass(chimap.cc)">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.000488" />
+ <d  id="2" v="98496.000000" />
+</ip>
+<ip task="15"     thread="(NULL)"     label="MPI_Barrier_856"     file="chimap.cc"     path=""     start="856"     end= "856"     parent="Close(chimap.cc)">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.032753" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Comm_size" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000002" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Comm_rank" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000001" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Isend" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.000095" />
+ <d  id="2" v="4004.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Waitall" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.026675" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Bcast" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.075159" />
+ <d  id="2" v="16000.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Barrier" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.032753" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_Allreduce" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="4" />
+ <d  id="1" v="0.029113" />
+ <d  id="2" v="196992.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_File_close" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.002325" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_File_open" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="2" />
+ <d  id="1" v="0.104729" />
+ <d  id="2" v="0.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_File_read" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="10" />
+ <d  id="1" v="0.291305" />
+ <d  id="2" v="392144.000000" />
+</ip>
+<ip task="15" thread="all" label="MPI_File_seek" file="" start="0" end= "0" parent="SUMMARY">
+ <d  id="0" v="1" />
+ <d  id="1" v="0.000003" />
+ <d  id="2" v="0.000000" />
+</ip>
+</mpidata>

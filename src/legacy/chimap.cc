@@ -6,12 +6,15 @@
 #include <math.h>
 #include "mpi.h"
 
-#ifdef hpm
-#include <hpm.h>
-#endif
 
 #ifdef mpitrace
 #include <mpt.h>
+#endif
+
+#ifdef HPM
+extern "C" {
+	#include "hpm.h"
+}
 #endif
 
 #define LOADDATAVERSION 1
@@ -279,12 +282,12 @@ Output			myout;
 ArgHandler		arghandler;
 
 int	main(int argc, char** args) {	
+	MPI_Init(&argc, &args);
   // Begin profiling here
-#ifdef hpm
+#ifdef HPM
   hpmInit();
   hpmStart("main function");
 #endif
-	MPI_Init(&argc, &args);
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -400,7 +403,7 @@ int	main(int argc, char** args) {
 		
 	//==============================================================================================================================
 	// FULL DATA PROCESSING
-#ifdef hpm
+#ifdef HPM
   hpmStart("fullpass function");
 #endif
 	
@@ -444,7 +447,7 @@ exitnow:
 	//   MPI_Send(NULL, 0, MPI_CHAR, rank+1, 0, MPI_COMM_WORLD);
 	//     }
 	MPI_Finalize();
-#ifdef hpm
+#ifdef HPM
   hpmTerminate();
   hpmStop("main function");
   hpmStop("fullpass function");

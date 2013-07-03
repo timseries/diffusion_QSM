@@ -1,5 +1,3 @@
-#bluegene
-
 #default compiler is mpicxx
 #use make bluegene for normal compilation
 #use make bluegene profile to include profiling
@@ -17,16 +15,18 @@ CC = mpixlcxx_r
 endif
 
 ifdef hpm
+CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
-CPPFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
-CPPFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm -qsmp=omp
-CPPFLAGS += -Dhpm
+LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm -qsmp=omp
+CPPFLAGS += -DHPM
 endif
 
 ifdef mpitrace
+CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
-CPPFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
-CPPFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lmpitrace
+LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lmpitrace
 CPPFLAGS += -Dmpitrace
 endif
 

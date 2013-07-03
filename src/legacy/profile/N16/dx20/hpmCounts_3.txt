@@ -1,0 +1,21 @@
+
+==================================================================================
+Hardware counter report for BGQ  - hardware-thread specific values , process 3 
+==================================================================================
+--------------------------- Resource Usage Statistics ----------------------------
+         27.435 (seconds): Total amount of time in user mode
+          0.000 (seconds): Total amount of time in system mode
+18014398509015192   : ru_maxrss
+              0   : ru_ixrss
+              0   : ru_idrss
+              0   : ru_minflt
+              0   : ru_majflt
+              0   : ru_nswap
+              0   : ru_inblock
+              0   : ru_oublock
+              0   : ru_msgsnd
+              0   : ru_msgrcv
+              0   : ru_nsignals
+              0   : ru_nvcsw
+              0   : ru_nivcsw
+--------------------------- End of Resource Statistics ---------------------------
