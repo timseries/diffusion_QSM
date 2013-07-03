@@ -286,7 +286,7 @@ int	main(int argc, char** args) {
   // Begin profiling here
 #ifdef HPM
   hpmInit();
-  hpmStart("main function");
+  // hpmStart("main function");
 #endif
 	
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -452,7 +452,7 @@ exitnow:
 	//     }
 	MPI_Finalize();
 #ifdef HPM
-  hpmStop("main function");
+	// hpmStop("main function");
   hpmTerminate();
 #endif
 

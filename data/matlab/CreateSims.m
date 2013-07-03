@@ -1,7 +1,7 @@
 clear all; close all; clc
 
 %% PARAMETERS - MODIFY THESE
-dx = 40;                       % Size of data in first dimension
+dx = 20;                       % Size of data in first dimension
 
 radius = 3;                    % Radius of cylinders/spheres
 N = 1;                         % Number of cylinders/spheres
