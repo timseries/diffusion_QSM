@@ -1,0 +1,39 @@
+elapsed time from clock-cycles using freq = 1600.0 MHz
+-----------------------------------------------------------------
+MPI Routine                  #calls     avg. bytes      time(sec)
+-----------------------------------------------------------------
+MPI_Comm_size                     1            0.0          0.000
+MPI_Comm_rank                     1            0.0          0.000
+MPI_Isend                         2          752.0          0.000
+MPI_Waitall                       1            0.0          0.000
+MPI_Bcast                         1        96000.0          1.088
+MPI_Barrier                       1            0.0          0.047
+MPI_Allreduce                     4       335008.0          0.203
+MPI_File_close                    2            0.0          0.009
+MPI_File_open                     2            0.0          0.106
+MPI_File_read                    10       230714.4          0.240
+MPI_File_seek                     1            0.0          0.000
+-----------------------------------------------------------------
+total communication time = 1.694 seconds.
+total elapsed time       = 28.680 seconds.
+
+-----------------------------------------------------------------
+Message size distributions:
+
+MPI_Isend                 #calls    avg. bytes      time(sec)
+                               1           4.0          0.000
+                               1        1500.0          0.000
+
+MPI_Bcast                 #calls    avg. bytes      time(sec)
+                               1       96000.0          1.088
+
+MPI_Allreduce             #calls    avg. bytes      time(sec)
+                               4      335008.0          0.203
+
+MPI_File_read             #calls    avg. bytes      time(sec)
+                               4           4.0          0.050
+                               1          40.0          0.084
+                               1          88.0          0.013
+                               1        3000.0          0.007
+                               3      768000.0          0.085
+

@@ -15,10 +15,12 @@ CC = mpixlcxx_r
 endif
 
 ifdef hpm
+#CC = mpixlcxx
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm -qsmp=omp
+#LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm
 CPPFLAGS += -DHPM
 endif
 

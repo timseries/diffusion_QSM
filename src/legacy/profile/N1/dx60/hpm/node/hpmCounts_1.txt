@@ -1,0 +1,38 @@
+
+==================================================================================
+Hardware counter report for BGQ  - hardware-thread specific values , process 1 
+==================================================================================
+--------------------------- Resource Usage Statistics ----------------------------
+       3281.632 (seconds): Total amount of time in user mode
+          0.000 (seconds): Total amount of time in system mode
+18014398508469336   : ru_maxrss
+              0   : ru_ixrss
+              0   : ru_idrss
+              0   : ru_minflt
+              0   : ru_majflt
+              0   : ru_nswap
+              0   : ru_inblock
+              0   : ru_oublock
+              0   : ru_msgsnd
+              0   : ru_msgrcv
+              0   : ru_nsignals
+              0   : ru_nvcsw
+              0   : ru_nivcsw
+--------------------------- End of Resource Statistics ---------------------------
+----------------------------------------------------------------
+Label: iteration, in File: chimap.cc,hpmStart: 1452,hpmStop: 1924, called = 1 times, cycles = 4917317917488 :
+  -- A2 counters (hardware thread specific) -------------
+core 1:
+       hwthread 0 
+      2337641123    Load Misses
+    750372369143    Total Loads
+      2000621591    Number of L1P misses
+   1536158975893    Number of Execution Unit Instructions
+     19869180012    All AXU instruction completions
+   4917317932320    Total Execution Unit Cycles
+  -- L2 counters (shared for the node) -----------------
+ 1416681184572  L2 Hits
+      57624620  L2 Misses
+      88951185  L2 lines loaded from main memory
+      55962910  L2 lines stored to   main memory
+

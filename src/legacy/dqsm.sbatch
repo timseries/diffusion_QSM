@@ -1,13 +1,13 @@
 #!/bin/sh
 #SBATCH --time=1:00:00
-#SBATCH --nodes=256
+#SBATCH --nodes=16
 #SBATCH --job-name="dQSM"
 #SBATCH --output="out%j.txt"
 
 outdir=out$SLURM_JOB_ID
 mkdir $outdir
 
-datadir=../../data/matlab/dx20
+datadir=../../data/matlab/dx40
 data="-DeltaB $datadir/deltab.bin"
 mask="-mask $datadir/mask.bin"
 modelmap="-modelmap $datadir/models.bin"
