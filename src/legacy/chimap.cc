@@ -403,15 +403,15 @@ int	main(int argc, char** args) {
 		
 	//==============================================================================================================================
 	// FULL DATA PROCESSING
-#ifdef HPM
-  hpmStart("fullpass function");
-#endif
+	//#ifdef HPM
+	//  hpmStart("fullpass function");
+	//#endif
 	
 	if (!FullPass(model, dspec, deltab, mask, kernel, chi)) goto exitnow;
 	
-#ifdef HPM
-  hpmStop("fullpass function");
-#endif
+	//#ifdef HPM
+	//  hpmStop("fullpass function");
+	//#endif
 
 	//==============================================================================================================================
 	// OUTPUT CHI
@@ -1448,6 +1448,9 @@ bool FullPass(models &model, DataSpec &dspec, usedtype *&DeltaB, bool *&mask, Ke
 	
 	//==================================================================================================================
 	// Start iterations
+		#ifdef HPM
+		hpmStart("iteration");
+                #endif
 	
 	printroot("   Starting iterations ...\n");
 	//old_rms_diff_x = -1;
@@ -1464,7 +1467,7 @@ bool FullPass(models &model, DataSpec &dspec, usedtype *&DeltaB, bool *&mask, Ke
 		printroot("      Iteration %d: ", iteration);
 		
 		// Ax_b = A * x - b
-		
+
 		memset(Ax_b, 0, (dEnd-dStart) * sizeof(usedtype));
 		memset(Dx, 0, (dEnd-dStart) * sizeof(usedtype));
 		for (o = 0; o < dspec.nFG; o++) {
@@ -1917,6 +1920,9 @@ bool FullPass(models &model, DataSpec &dspec, usedtype *&DeltaB, bool *&mask, Ke
 		iteration++;
 		
 	} while (rms_diff_x / rms_x > relative_threshold && rms_diff_x > absolute_threshold && iteration < max_iters);
+#ifdef HPM
+	hpmStop("iteration");
+#endif
 	
 	tEnd = time(NULL);
 	tsecs = tEnd - tStart;
