@@ -409,6 +409,10 @@ int	main(int argc, char** args) {
 	
 	if (!FullPass(model, dspec, deltab, mask, kernel, chi)) goto exitnow;
 	
+#ifdef HPM
+  hpmStop("fullpass function");
+#endif
+
 	//==============================================================================================================================
 	// OUTPUT CHI
 	myout.LocalArray(0, chi, 3, dspec.size, "chi");
@@ -448,9 +452,8 @@ exitnow:
 	//     }
 	MPI_Finalize();
 #ifdef HPM
-  hpmTerminate();
   hpmStop("main function");
-  hpmStop("fullpass function");
+  hpmTerminate();
 #endif
 
 }

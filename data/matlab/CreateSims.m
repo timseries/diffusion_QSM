@@ -1,7 +1,7 @@
 clear all; close all; clc
 
 %% PARAMETERS - MODIFY THESE
-dx = 20;                       % Size of data in first dimension
+dx = 40;                       % Size of data in first dimension
 
 radius = 3;                    % Radius of cylinders/spheres
 N = 1;                         % Number of cylinders/spheres
@@ -127,7 +127,7 @@ for n=1:N
 end
 
 %% Write data to file, save data
-WriteChiMapDataToFile('data.bin', deltab, B0, B0dir, [1 1 1])
+WriteChiMapDataToFile('deltab.bin', deltab, B0, B0dir, [1 1 1])
 WriteChiMapArrayToFile('mask.bin', mask)
 WriteChiMapArrayToFile('models.bin', models)
 
