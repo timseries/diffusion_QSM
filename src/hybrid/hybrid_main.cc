@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY <copyright holder> ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -22,14 +22,14 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
 
-/*! \file arghandler.cc
-  \brief ArgHandler class file.
+/*! \file process.cc
+  \brief Process class file.
 
-  Implementation of the ArgHandler class.
+  Implementation of the Process class.
 */
-
-#include "hybrid/arghandler.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,52 +38,29 @@
 #include <float.h>
 #include <math.h>
 
-ArgHandler::ArgHandler(){}
-ArgHandler::~ArgHandler(){}
+#include <mpi.h>
 
-void ArgHandler::Init(int argc, char** args) {
-  this->argc = argc;
-  this->args = args;
-}
+#include "hybrid/process.h"
+#include "hybrid/arghandler.h"
+#include "hybrid/kernel.h"
+#include "hybrid/modelmap.h"
+#include "hybrid/output.h"
+#include "hybrid/process.h"
+#include "hybrid/util.h"
 
-bool ArgHandler::GetArg(const char* option, char *&str) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      str = reinterpret_cast<char*>(calloc(strlen(args[i+1])+1, 
-                                           SIZEOF_CHAR));
-      // TODO(timseries): replace strcpy with snprintf which is more secure.
-      strcpy(str, args[i+1]);
-      return true;
+int main(int argc, char** args) {
+  Process process;
+  bool flg = 1;
+  if (!process.Init(argc, args)) goto exitnow;
+  // Enter the main solve function
+  if (!process.FullPass()) {
+      flg=0;
+      goto exitnow;
     }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, usedtype &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atof(args[i+1]);
-      return true;
+  if (!process.WriteOut()) {
+      flg=0;
+      goto exitnow;
     }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, int &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atoi(args[i+1]);
-      return true;
-    }
-  }
-  return false;
+exitnow:
+  return flg & process.CleanUp();
 }

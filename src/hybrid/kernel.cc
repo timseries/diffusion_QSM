@@ -31,7 +31,7 @@
     Implementation of the Kernel class.
 */
 
-#include "include/kernel.h"
+#include "hybrid/kernel.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,6 +41,9 @@
 #include <math.h>
 
 #include <mpi.h>
+
+#include "hybrid/dataspec.h"
+#include "hybrid/modelmap.h"
 
 Kernel::Kernel() {
   kernel = NULL;
@@ -53,8 +56,8 @@ Kernel::Kernel() {
   gy = NULL;
   gz = NULL;
 }
-
-Kernel::CreateSphericalKernel(const DataSpec &dspec) {
+Kernel::~Kernel() {}
+void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
   usedtype SPHa = dspec.B0 / (4 * M_PI);
   usedtype minkernelvalue, maxkernelvalue = 0;
 
@@ -79,9 +82,9 @@ Kernel::CreateSphericalKernel(const DataSpec &dspec) {
       }
     }
   }
-  printroot("   max value : %0.20e\n", maxkernelvalue);
+  // if (rank==0) printroot("   max value : %0.20e\n", maxkernelvalue);
   minkernelvalue = threshold*maxkernelvalue;
-  printroot("   threshold value : %0.20e\n", minkernelvalue);
+  // if (rank==0) printroot("   threshold value : %0.20e\n", minkernelvalue);
   for (int i = 0; i < N; i++) {
     if (fabs(skernel[i]) < minkernelvalue) {
       skernel[i] = 0;
@@ -91,7 +94,7 @@ Kernel::CreateSphericalKernel(const DataSpec &dspec) {
 }
 
 // returns the number of non-zeros
-Kernel::CreateCylindricalKernel(const DataSpec &dspec) {
+void Kernel::CreateCylindricalKernel(const DataSpec &dspec) {
   usedtype a = 0.475;
   usedtype CYL2alpha = 2*a;
   usedtype CYL3alpha = 3*a;
@@ -147,7 +150,7 @@ Kernel::CreateCylindricalKernel(const DataSpec &dspec) {
     }
   }
 }
-Kernel::InitMixedModel(const DataSpec &dspec) {
+void Kernel::InitMixedModel(const DataSpec &dspec) {
   usedtype        a = 0.475;
   CYL2alpha = 2*a;
   CYL3alpha = 3*a;
@@ -177,10 +180,10 @@ Kernel::InitMixedModel(const DataSpec &dspec) {
   }
 }
 
-Kernel::Create(const models &model,
+bool Kernel::Create(const models &model,
                const DataSpec &dspec,
                const usedtype &threshold) {
-  printroot("Creating kernel\n");
+  // if (rank==0) printroot("Creating kernel\n");
 
   this->model = model;
   this->threshold = threshold;
@@ -200,13 +203,13 @@ Kernel::Create(const models &model,
   // if (iseven(size)) size++;
   if (size/2 == size/2.0) size++;
 
-  int64 maxdatasize = dspec.size[0] > dspec.size[1] &
+  long maxdatasize = dspec.size[0] > dspec.size[1] &
       dspec.size[0] > dspec.size[2] ? dspec.size[0] :
       dspec.size[1] > dspec.size[2] ? dspec.size[1] : dspec.size[2];
   if (size > maxdatasize * 2 + 1) size = maxdatasize * 2 + 1;
 
-  printroot("   threshold = %0.3e\n", threshold);
-  printroot("   kernel size = %d\n", size);
+  //  if (rank==0) printroot("   threshold = %0.3e\n", threshold);
+  //  if (rank==0) printroot("   kernel size = %d\n", size);
   halfsize = size/2;
   N = size*size*size;
   nnz = N;
@@ -240,11 +243,11 @@ Kernel::Create(const models &model,
     InitMixedModel(dspec);
   }
 
-  printroot("   non-zeros = %d\n", nnz);
+  // if (rank==0) printroot("   non-zeros = %d\n", nnz);
 
   return true;
 }
-Kernel::Get(int x, int y, int z, int o) {
+usedtype Kernel::Get(int x, int y, int z, int o) {
   int ix = x + y*yoffset + z*zoffset;
   int mix;
   if (model == MODEL_MIXED &&  (mix = modelmap.mask[o]) != -1) {
@@ -278,7 +281,7 @@ Kernel::Get(int x, int y, int z, int o) {
   }
 }
 
-Kernel::GetCyl(int mix, int x, int y, int z) {
+usedtype Kernel::GetCyl(int mix, int x, int y, int z) {
   usedtype rc = x*modelmap.x[mix] + y*modelmap.y[mix] + z*modelmap.z[mix];
   if (fabs(rc) <= CYL2alpha) {
     usedtype r2 = 1/(x*x + y*y + z*z - rc*rc);
@@ -297,7 +300,7 @@ Kernel::GetCyl(int mix, int x, int y, int z) {
   }
 }
 
-Kernel::close(void) {
+void Kernel::close(void) {
   modelmap.close();
   if (kernel != NULL) free(kernel);
   if (skernel != NULL) free(skernel);

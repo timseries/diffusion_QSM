@@ -22,68 +22,51 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
 
-/*! \file arghandler.cc
-  \brief ArgHandler class file.
+/*! \file process.h
+    \brief Process class definitions file.
 
-  Implementation of the ArgHandler class.
 */
 
+#ifndef INCLUDE_PROCESS_H_
+#define INCLUDE_PROCESS_H_
+
+#include "hybrid/basictypes.h"
+#include "hybrid/dataspec.h"
 #include "hybrid/arghandler.h"
+#include "hybrid/kernel.h"
+#include "hybrid/output.h"
+#include "hybrid/util.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <float.h>
-#include <math.h>
+class Process {
+ public:
+  Process();
+  virtual ~Process();
+  bool Init(int argc, char** args);
+  void HandleArgs(int argc, char** args);
+  void StartMPI(int argc, char** args);
+  bool loadDeltaB();
+  bool loadMask();
+  bool FullPass();
+  bool WriteOut();
+  bool CleanUp();
+  models model;
+  bool *mask;
+  Kernel kernel;
+  DataSpec dspec;
+  
+  usedtype threshold;
+  usedtype *deltab;
+  usedtype *chi;
+  
+  int rank;
+  int size;
 
-ArgHandler::ArgHandler(){}
-ArgHandler::~ArgHandler(){}
-
-void ArgHandler::Init(int argc, char** args) {
-  this->argc = argc;
-  this->args = args;
-}
-
-bool ArgHandler::GetArg(const char* option, char *&str) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      str = reinterpret_cast<char*>(calloc(strlen(args[i+1])+1, 
-                                           SIZEOF_CHAR));
-      // TODO(timseries): replace strcpy with snprintf which is more secure.
-      strcpy(str, args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, usedtype &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atof(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, int &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atoi(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
+  Output myout;
+  ArgHandler arghandler;
+  char *filepath;
+  MPI_File fptr;
+};
+#endif  // INCLUDE_PROCESS_H_

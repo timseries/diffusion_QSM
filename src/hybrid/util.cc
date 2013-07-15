@@ -31,7 +31,7 @@
   Implementation of the Kernel class.
 */
 
-#include "include/util.h"
+#include "hybrid/util.h"
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY <copyright holder> ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -22,68 +22,31 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
 
-/*! \file arghandler.cc
-  \brief ArgHandler class file.
+/*! \file modelmap.h
+  \brief ModelMap class definitions file.
 
-  Implementation of the ArgHandler class.
 */
 
+#ifndef INCLUDE_MODELMAP_H_
+#define INCLUDE_MODELMAP_H_
+
+#include "hybrid/basictypes.h"
+#include "hybrid/dataspec.h"
 #include "hybrid/arghandler.h"
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <float.h>
-#include <math.h>
-
-ArgHandler::ArgHandler(){}
-ArgHandler::~ArgHandler(){}
-
-void ArgHandler::Init(int argc, char** args) {
-  this->argc = argc;
-  this->args = args;
-}
-
-bool ArgHandler::GetArg(const char* option, char *&str) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      str = reinterpret_cast<char*>(calloc(strlen(args[i+1])+1, 
-                                           SIZEOF_CHAR));
-      // TODO(timseries): replace strcpy with snprintf which is more secure.
-      strcpy(str, args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, usedtype &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atof(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, int &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atoi(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
+class ModelMap {
+ public:
+  ModelMap();
+  virtual ~ModelMap();
+  bool Process(DataSpec &dspec, const ArgHandler &arghandler);
+  void close(void);
+  int *mask;
+  usedtype *x;
+  usedtype *y;
+  usedtype *z;
+  int ncyls;
+};
+#endif  // INCLUDE_MODELMAP_H_

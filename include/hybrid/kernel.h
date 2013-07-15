@@ -22,68 +22,57 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
 
-/*! \file arghandler.cc
-  \brief ArgHandler class file.
+/*! \file kernel.h
+    \brief Kernel class definitions file.
 
-  Implementation of the ArgHandler class.
 */
 
-#include "hybrid/arghandler.h"
+#ifndef INCLUDE_KERNEL_H_
+#define INCLUDE_KERNEL_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <float.h>
-#include <math.h>
+//#include "hybrid/basictypes.h"
 
-ArgHandler::ArgHandler(){}
-ArgHandler::~ArgHandler(){}
+#include "hybrid/basictypes.h"
+#include "hybrid/dataspec.h"
+#include "hybrid/modelmap.h"
 
-void ArgHandler::Init(int argc, char** args) {
-  this->argc = argc;
-  this->args = args;
-}
+class Kernel {
+ public:
+  Kernel();
+  virtual ~Kernel();
+  void CreateSphericalKernel(const DataSpec &dspec);
+  void CreateCylindricalKernel(const DataSpec &dspec);
+  void InitMixedModel(const DataSpec &dspec);
+  bool Create(const models &model,
+              const DataSpec &dspec,
+              const usedtype &threshold);
+  usedtype Get(int x, int y, int z, int o);
+  usedtype GetCyl(int mix, int x, int y, int z);
+  void close(void);
 
-bool ArgHandler::GetArg(const char* option, char *&str) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      str = reinterpret_cast<char*>(calloc(strlen(args[i+1])+1, 
-                                           SIZEOF_CHAR));
-      // TODO(timseries): replace strcpy with snprintf which is more secure.
-      strcpy(str, args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, usedtype &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atof(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, int &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atoi(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
+  models model;
+  usedtype *skernel, *ckernel;
+  usedtype *kernel;
+  usedtype threshold;
+  usedtype B0;
+  usedtype CYL2alpha;
+  usedtype CYL3alpha;
+  usedtype CYL4alpha3;
+  usedtype CYLa;
+  usedtype *ctr;
+  usedtype *sin2beta;
+  usedtype *gx;
+  usedtype *gy;
+  usedtype *gz;
+  int yoffset;
+  int zoffset;
+  ModelMap modelmap;
+  int nnz;
+  int size;
+  int halfsize;
+  int N;
+};
+#endif  // INCLUDE_KERNEL_H_

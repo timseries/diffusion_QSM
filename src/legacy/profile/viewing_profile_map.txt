@@ -1,1 +1,0 @@
-gprof chimap | ~/SoftwareUtilities/jrfonseca.gprof2dot/gprof2dot.py | dot -Tpng -o output.png

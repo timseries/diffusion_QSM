@@ -22,68 +22,29 @@
 // ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
 
-/*! \file arghandler.cc
-  \brief ArgHandler class file.
+/*! \file arghandler.h
+    \brief ArgHandler class definitions file.
 
-  Implementation of the ArgHandler class.
 */
 
-#include "hybrid/arghandler.h"
+#ifndef INCLUDE_HYBRID_ARGHANDLER_H_
+#define INCLUDE_HYBRID_ARGHANDLER_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <float.h>
-#include <math.h>
+#include "hybrid/basictypes.h"
 
-ArgHandler::ArgHandler(){}
-ArgHandler::~ArgHandler(){}
-
-void ArgHandler::Init(int argc, char** args) {
-  this->argc = argc;
-  this->args = args;
-}
-
-bool ArgHandler::GetArg(const char* option, char *&str) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      str = reinterpret_cast<char*>(calloc(strlen(args[i+1])+1, 
-                                           SIZEOF_CHAR));
-      // TODO(timseries): replace strcpy with snprintf which is more secure.
-      strcpy(str, args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, usedtype &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atof(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ArgHandler::GetArg(const char* option, int &value) const {
-  for (int i = 0; i < argc; i++) {
-    if (strcmp(args[i], option) == 0) {
-      if (i == argc-1) {
-        return false;
-      }
-      value = atoi(args[i+1]);
-      return true;
-    }
-  }
-  return false;
-}
+class ArgHandler {
+ public:
+  ArgHandler();
+  virtual ~ArgHandler();
+  void Init(int argc, char** args);
+  bool GetArg(const char* option, char *&str) const ;
+  bool GetArg(const char* option, usedtype &value) const ;
+  bool GetArg(const char* option, int &value) const;
+ private:
+  int argc;
+  char** args;
+};
+#endif  // INCLUDE_HYBRID_ARGHANDLER_H_

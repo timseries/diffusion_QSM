@@ -29,7 +29,7 @@
   Implementation of the ModelMap class.
 */
 
-#include "include/modelmap.h"
+#include "hybrid/modelmap.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -40,6 +40,12 @@
 
 #include <mpi.h>
 
+#include "hybrid/util.h"
+
+using ::util::checkEndianness;
+using ::util::checkVersion;
+using ::util::byteswap;
+
 ModelMap::ModelMap() {
   mask = NULL;
   x = NULL;
@@ -47,8 +53,9 @@ ModelMap::ModelMap() {
   z = NULL;
   ncyls = 0;
 }
+ModelMap::~ModelMap() {}
 // TODO(timseries): The sizeof(type)'s would be best replaced with a constant...
-bool ModelMap::Process(DataSpec &dspec) {
+bool ModelMap::Process(DataSpec &dspec, const ArgHandler &arghandler) {
   int err;
   char *filepath;
   MPI_File fptr;
@@ -59,18 +66,19 @@ bool ModelMap::Process(DataSpec &dspec) {
   usedtype threshold;
   double *mx, *my, *mz;
 
-  printroot("Loading model map ...\n");
+  //  if (rank==0) printroot("Loading model map ...\n");
   flg = arghandler.GetArg("-modelmap", filepath);
   if (!flg) {
-    printroot("Model map file not specified\n");
+    //    if (rank==0) printroot("Model map file not specified\n");
     return false;
   }
-  printroot("   file: %s\n", filepath);
+  //  if (rank==0) printroot("   file: %s\n", filepath);
 
   // open file for reading
   err = MPI_File_open(MPI_COMM_SELF,
                       filepath, MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
-  if (err) {printroot("Could not open model mask file"); return false;}
+  //if (err) {
+  //  if (rank==0) printroot("Could not open model mask file"); return false;}
 
   // check endianness
   checkEndianness(fptr, flgByteSwap);
@@ -85,28 +93,28 @@ bool ModelMap::Process(DataSpec &dspec) {
   if (flgByteSwap) byteswap(reinterpret_cast<char*>(buf), 5, sizeof(double));
 
   if (dspec.size[0] != buf[1]) {
-    printroot("Size of first dimension of ModelMask does not match DeltaB");
+    //    if (rank==0) printroot("Size of first dimension of ModelMask does not match DeltaB");
     return false; }
   if (dspec.size[1] != buf[2]) {
-    printroot("Size of second dimension of ModelMask does not match DeltaB");
+    //    if (rank==0) printroot("Size of second dimension of ModelMask does not match DeltaB");
     return false; }
   if (dspec.size[2] != buf[3]) {
-    printroot("Size of third dimension of ModelMask does not match DeltaB");
+    //    if (rank==0) printroot("Size of third dimension of ModelMask does not match DeltaB");
     return false; }
   if (buf[4] != 3) {
-    printroot("Size of fourth dimension of ModelMask is not 3");
+    //    if (rank==0) printroot("Size of fourth dimension of ModelMask is not 3");
     return false; }
   if (buf[0] != buf[1] * buf[2] * buf[3] * buf[4]) {
-    printroot("Number of elements ModelMask does not match array sizes");
+    //    if (rank==0) printroot("Number of elements ModelMask does not match array sizes");
     return false; }
 
   // Load model data
-  mx = reinterpret_cast<usedtype*>(calloc(dspec.N, sizeof(double)));
-  my = reinterpret_cast<usedtype*>(calloc(dspec.N, sizeof(double)));
-  mz = reinterpret_cast<usedtype*>(calloc(dspec.N, sizeof(double)));
+  mx = reinterpret_cast<double*>(calloc(dspec.N, sizeof(double)));
+  my = reinterpret_cast<double*>(calloc(dspec.N, sizeof(double)));
+  mz = reinterpret_cast<double*>(calloc(dspec.N, sizeof(double)));
 
   if (mx == NULL || my == NULL || mz == NULL) {
-    printroot("Not enough memory available.");
+    //    if (rank==0) printroot("Not enough memory available.");
     return false;
   }
 
@@ -126,7 +134,7 @@ bool ModelMap::Process(DataSpec &dspec) {
   flg = arghandler.GetArg("-mt", threshold);
   if (!flg) threshold = 0.2;
 
-  printroot("   threshold = %0.3f\n", threshold);
+  //  if (rank==0) printroot("   threshold = %0.3f\n", threshold);
 
   // CREATE MASK
   mask = reinterpret_cast<int*>(calloc(dspec.N, sizeof(int)));
@@ -139,7 +147,7 @@ bool ModelMap::Process(DataSpec &dspec) {
 
   // GATHER X Y AND Z ARRAYS
   ncyls = ix;
-  printroot("   number cylinders = %d\n", ncyls);
+  //  if (rank==0) printroot("   number cylinders = %d\n", ncyls);
   x = reinterpret_cast<usedtype*>(calloc(ncyls, sizeof(usedtype)));
   y = reinterpret_cast<usedtype*>(calloc(ncyls, sizeof(usedtype)));
   z = reinterpret_cast<usedtype*>(calloc(ncyls, sizeof(usedtype)));
@@ -150,7 +158,7 @@ bool ModelMap::Process(DataSpec &dspec) {
       z[mask[i]] = mz[i];
     }
   }
-  printroot("   ix = %d\n", ix);
+  //  if (rank==0) printroot("   ix = %d\n", ix);
   free(mx);
   free(my);
   free(mz);
@@ -158,10 +166,9 @@ bool ModelMap::Process(DataSpec &dspec) {
   return true;
 }
 
-ModelMap::close() {
+void ModelMap::close() {
   if (mask != NULL) free(mask);
   if (x != NULL) free(x);
   if (y != NULL) free(y);
   if (z != NULL) free(z);
 }
-
