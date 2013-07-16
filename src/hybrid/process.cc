@@ -560,7 +560,7 @@ bool Process::FullPass() {
     if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
 
     // omp_set_num_threads(2);
-#pragma omp parallel for private(o,p)
+#pragma omp parallel for private(o,p) num_threads(64)
       for (o = 0; o < dspec.nFG; o++) {
           if (rank==0) printroot("num threads = %d\n",omp_get_num_threads());
           // printroot("this thread num = %d\n",omp_get_thread_num());
