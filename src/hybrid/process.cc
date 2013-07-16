@@ -556,65 +556,68 @@ bool Process::FullPass() {
 
     memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
     memset(P->Dx, 0, (P->dN) * sizeof(usedtype));
-#pragma omp parallel for schedule(dynamic) num_threads(2)
+    omp_set_num_threads(2);
+#pragma omp parallel for num_threads(2)
     {
-      omp_set_num_threads(2);
-    printroot("num threads = %d\n",omp_get_num_threads());
-    for (o = 0; o < dspec.nFG; o++) {
-      int ox, oy, oz, px, py, pz, rx, ry, rz;
+      if (rank==0) printroot("num threads = %d\n",omp_get_num_threads());
+      printroot("this thread num = %d\n",omp_get_thread_num());
+      if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+      if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+      for (o = 0; o < dspec.nFG; o++) {
+        int ox, oy, oz, px, py, pz, rx, ry, rz;
       
-      if (P->x[o]) {
+        if (P->x[o]) {
         
-        oz = FGindices[o] / dspec.zoffset;
-        oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
-        ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+          oz = FGindices[o] / dspec.zoffset;
+          oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+          ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
 
-        // TODO(timseries): find out why these were missing from OK's implementation.
-        pz = dStart / dspec.zoffset;
-        py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
-        px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;			    
+          // TODO(timseries): find out why these were missing from OK's implementation.
+          pz = dStart / dspec.zoffset;
+          py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+          px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;			    
 
-        ry = py - oy;
-        rz = pz - oz;
-        
-        for (int p = dStart; p < dEnd; p++) {
-          int size = dspec.size[1] * dspec.size[0];
-          pz = p / size;
-          py = (p - pz*size) / dspec.size[0];
-          px = p - pz*size - py * dspec.size[0];
-
-          rx = px - ox;
           ry = py - oy;
           rz = pz - oz;
+        
+          for (int p = dStart; p < dEnd; p++) {
+            int size = dspec.size[1] * dspec.size[0];
+            pz = p / size;
+            py = (p - pz*size) / dspec.size[0];
+            px = p - pz*size - py * dspec.size[0];
+
+            rx = px - ox;
+            ry = py - oy;
+            rz = pz - oz;
           
-          if (rx >= -kernel.halfsize && rx <= kernel.halfsize && ry >= -kernel.halfsize && ry <= kernel.halfsize && rz >= -kernel.halfsize && rz <= kernel.halfsize) {
-            // Linear system
-            int mix = kernel.modelmap.mask[FGindices[o]];
-            if (mix == -1) { // spherical kernel
-              P->Ax_b[p - dStart] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[o];
-            }
-            else if (P->PreCalcCylinders) {
-              P->Ax_b[p - dStart] += cylColumns[mix*dN + p-dStart] * P->x[o];
-            }
-            else if (rx == 0 && ry == 0 && rz == 0) {
-              P->Ax_b[p - dStart] += kernel.ctr[mix] * P->x[o];
-            }
-            else {
-              P->Ax_b[p - dStart] += kernel.GetCyl(mix, rx, ry, rz) * P->x[o];
-            }
+            if (rx >= -kernel.halfsize && rx <= kernel.halfsize && ry >= -kernel.halfsize && ry <= kernel.halfsize && rz >= -kernel.halfsize && rz <= kernel.halfsize) {
+              // Linear system
+              int mix = kernel.modelmap.mask[FGindices[o]];
+              if (mix == -1) { // spherical kernel
+                P->Ax_b[p - dStart] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[o];
+              }
+              else if (P->PreCalcCylinders) {
+                P->Ax_b[p - dStart] += cylColumns[mix*dN + p-dStart] * P->x[o];
+              }
+              else if (rx == 0 && ry == 0 && rz == 0) {
+                P->Ax_b[p - dStart] += kernel.ctr[mix] * P->x[o];
+              }
+              else {
+                P->Ax_b[p - dStart] += kernel.GetCyl(mix, rx, ry, rz) * P->x[o];
+              }
             
-            // Laplacian
-            Laplacian(rx, ry, rz, P->Dx, P->x, p-dStart, o);
+              // Laplacian
+              Laplacian(rx, ry, rz, P->Dx, P->x, p-dStart, o);
+            }
           }
         }
       }
     }
-    }
 #pragma omp parallel for schedule(dynamic)
     {
-    for (int p = 0; p < P->dN; p++) {
-      P->Ax_b[p] -= deltab[p];
-    }
+      for (int p = 0; p < P->dN; p++) {
+        P->Ax_b[p] -= deltab[p];
+      }
     }
 #else
     memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
