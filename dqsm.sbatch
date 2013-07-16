@@ -7,6 +7,7 @@
 outdir=out$SLURM_JOB_ID
 mkdir $outdir
 
+executable=./src/$1/dqsm
 datadir=../../data/matlab/dx40
 data="-DeltaB $datadir/deltab.bin"
 mask="-mask $datadir/mask.bin"
@@ -17,4 +18,4 @@ model="-model m"
 alpha="-alpha 0.5"
 #previter="-x out41736/x_iter000925.bin"
 
-time srun --ntasks-per-node=16 ./chimap $model $data $mask $modelmap $out $maxiters $previter $alpha
+time srun --ntasks-per-node=1 $executable $model $data $mask $modelmap $out $maxiters $previter $alpha
