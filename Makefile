@@ -4,15 +4,15 @@
 CC		= mpicxx
 CPPFLAGS	= -c -o3
 CPPFLAGS 	+= -Iinclude
-LDFLAGS		= 
+LDFLAGS		=
 LIBS		= 
 
 ifdef hybrid
 SOURCEDIR     	= src/hybrid
 SOURCES		= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/modelmap.cc
 SOURCES		+= $(SOURCEDIR)/output.cc $(SOURCEDIR)/util.cc
-SOURCES		+= $(SOURCEDIR)/kernel.cc  $(SOURCEDIR)/process.cc
-SOURCES		+= $(SOURCEDIR)/hybrid_main.cc
+SOURCES		+= $(SOURCEDIR)/kernel.cc $(SOURCEDIR)/problem.cc
+SOURCES		+= $(SOURCEDIR)/process.cc $(SOURCEDIR)/hybrid_main.cc
 #SOURCES		= $(SOURCEDIR)/hybrid_main.cc
 #SOURCES		+= $(SOURCEDIR)/process.cc $(SOURCEDIR)/kernel.cc
 #SOURCES		+= $(SOURCEDIR)/modelmap.cc $(SOURCEDIR)/output.cc
@@ -25,6 +25,15 @@ endif
 
 EXECUTABLE	= $(SOURCEDIR)/dqsm
 OBJECTS		= $(SOURCES:.cc=.o)
+
+ifdef openmp
+CPPFLAGS += -DUSE_OPENMP
+ifdef bluegene
+LDFLAGS += -qsmp=omp
+else
+LDFLAGS = -fopenmp
+endif
+endif 
 
 ifdef bluegene
 CC = mpixlcxx_r

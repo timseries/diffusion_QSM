@@ -25,52 +25,68 @@
 //
 // Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
 
-/*! \file process.h
-    \brief Process class definitions file.
+/*! \file problem.h
+    \brief Problem class definitions file.
 
 */
 
-#ifndef INCLUDE_PROCESS_H_
-#define INCLUDE_PROCESS_H_
+#ifndef INCLUDE_PROBLEM_H_
+#define INCLUDE_PROBLEM_H_
+
+//#include "hybrid/basictypes.h"
 
 #include "hybrid/basictypes.h"
 #include "hybrid/dataspec.h"
-#include "hybrid/arghandler.h"
 #include "hybrid/kernel.h"
-#include "hybrid/output.h"
-#include "hybrid/problem.h"
-#include "hybrid/util.h"
 
-class Process {
+class Problem {
  public:
-  Process();
-  virtual ~Process();
-  bool Init(int argc, char** args);
-  void HandleArgs(int argc, char** args);
-  void StartMPI(int argc, char** args);
-  bool loadDeltaB();
-  bool loadMask();
-  bool FullPass();
-  void LWIterate(usedtype* LHS, usedtype* RHS, int dir, usedtype* LapLHS, usedtype* LapRHS);
-  void Laplacian(int rx, int ry, int rz, usedtype* LHS, usedtype* RHS, int o, int p);
-  bool WriteOut();
-  bool CleanUp();
-  models model;
-  bool *mask;
-  Kernel kernel;
-  DataSpec dspec;
-  Problem *P;
-  
-  usedtype threshold;
-  usedtype *deltab;
-  usedtype *chi;
-  
-  int rank;
-  int size;
+  Problem();
+  Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, usedtype beta);
+  virtual ~Problem();
+  DataSpec &dspec;
+  int dStart, dEnd;
+  int dN;  
 
-  Output myout;
-  ArgHandler arghandler;
-  char *filepath;
-  MPI_File fptr;
+  usedtype *Ax_b;  
+  usedtype *AtAx_b;
+  usedtype *Dx;
+  usedtype *DtDx;
+  usedtype *x;
+
+  bool PreCalcCylinders;
+  usedtype *cylColumns;
+  int *FGindices; // indices corresponding to foreground elements
+
+#ifdef USE_OPENCL
+  OpenCL* cl;
+  OpenCLProfile profile1, profile2, profile3;
+
+  size_t cl_size_fg;
+  size_t cl_size_n;
+  size_t cl_size_cyl;
+
+  //Kernels
+  cl_kernel kernel_iterate1; 
+  cl_kernel kernel_iterate2;
+  cl_kernel kernel_zero;
+  cl_kernel kernel_delta_b;
+  cl_kernel kernel_rms_new_x;
+  cl_kernel kernel_collect;
+
+  //Buffers
+  cl_mem cl_Ax_b, cl_x, cl_AtAx_b, cl_Dx, cl_DtDx;
+  cl_mem cl_FGindices;
+  cl_mem cl_skernel, cl_mask, cl_deltab;
+  cl_mem cl_gx, cl_gy, cl_gz, cl_ctr, cl_sin2beta;
+  cl_mem cl_mapx, cl_mapy, cl_mapz;
+  cl_mem cl_out;
+
+  int threads;
+  float divide;
+  char* clkern;
+
+  OutputCL out; //output var buffer
+#endif //USE_OPENCL
 };
-#endif  // INCLUDE_PROCESS_H_
+#endif  // INCLUDE_PROBLEM_H_
