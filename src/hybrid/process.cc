@@ -556,15 +556,15 @@ bool Process::FullPass() {
 
     memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
     memset(P->Dx, 0, (P->dN) * sizeof(usedtype));
-    omp_set_num_threads(2);
-#pragma omp parallel for num_threads(2)
-    {
-      if (rank==0) printroot("num threads = %d\n",omp_get_num_threads());
-      printroot("this thread num = %d\n",omp_get_thread_num());
-      if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
-      if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+    if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+    if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+
+    // omp_set_num_threads(2);
+#pragma omp parallel for private(o,p)
       for (o = 0; o < dspec.nFG; o++) {
-        int ox, oy, oz, px, py, pz, rx, ry, rz;
+          if (rank==0) printroot("num threads = %d\n",omp_get_num_threads());
+          // printroot("this thread num = %d\n",omp_get_thread_num());
+          int ox, oy, oz, px, py, pz, rx, ry, rz;
       
         if (P->x[o]) {
         
@@ -612,13 +612,11 @@ bool Process::FullPass() {
           }
         }
       }
-    }
 #pragma omp parallel for schedule(dynamic)
-    {
       for (int p = 0; p < P->dN; p++) {
         P->Ax_b[p] -= deltab[p];
       }
-    }
+
 #else
     memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
     memset(P->Dx, 0, (P->dN) * sizeof(usedtype));

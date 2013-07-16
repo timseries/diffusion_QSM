@@ -2,7 +2,7 @@
 #use make bluegene for normal compilation
 #use make bluegene profile to include profiling
 CC		= mpicxx
-CPPFLAGS	= -c -o3
+CPPFLAGS	= -c -O3
 CPPFLAGS 	+= -Iinclude
 LDFLAGS		=
 LIBS		= 
@@ -29,7 +29,8 @@ OBJECTS		= $(SOURCES:.cc=.o)
 ifdef openmp
 CPPFLAGS += -DUSE_OPENMP
 ifdef bluegene
-LDFLAGS += -qsmp=omp
+#LDFLAGS += -qsmp=omp
+LDFLAGS += -qtm -qsmp=omp:speculative
 else
 LDFLAGS = -fopenmp
 endif

@@ -1,3 +1,4 @@
 out/
 profile/
 src/*/dqsm
+*.txt
