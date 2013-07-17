@@ -24,8 +24,8 @@ OBJECTS		= $(SOURCES:.cc=.o)
 ifdef openmp
 CPPFLAGS += -DUSE_OPENMP
 ifdef bluegene
-CPPFLAGS += -qtm -qsmp=omp:speculative
-LDFLAGS += -qtm -qsmp=omp:speculative
+CPPFLAGS += -qtm -qsmp=omp
+LDFLAGS += -qtm -qsmp=omp
 else
 CPPFLAGS += -fopenmp
 LDFLAGS += -fopenmp
@@ -34,27 +34,35 @@ endif
 
 ifdef bluegene
 CC = mpixlcxx_r
-endif
 
-ifdef hpm
+ifdef hpm_profile
 #CC = mpixlcxx
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
-LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm -qsmp=omp
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm
 #LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm
 CPPFLAGS += -DHPM
 endif
 
-ifdef mpitrace
+ifdef mpi_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
-LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
+#LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lmpitrace
-CPPFLAGS += -Dmpitrace
+CPPFLAGS += -DMPI_PROFILE
 endif
 
-ifdef profile
+ifdef openmp_profile
+CPPFLAGS += -g
+CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
+LDFLAGS += -L/opt/ibmcmp/xlsmp/3.1/lib64 -lxlsmp_pomp
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lpompprof_probe
+CPPFLAGS += -DOPENMP_PROFILE
+endif
+endif
+
+ifdef gprof_profile
 CPPFLAGS += -pg
 LDFLAGS += -pg
 endif
