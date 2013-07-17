@@ -77,7 +77,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CPPFLAGS) $< -o $@
 
 clean:
-	rm -rf $(SOURCEDIR)/*.o $(SOURCEDIR)/$(EXECUTABLE)
+	rm -rf $(SOURCEDIR)/*.o $(EXECUTABLE)
 
 
 

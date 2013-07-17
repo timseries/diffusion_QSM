@@ -139,6 +139,10 @@ void Process::HandleArgs(int argc, char** args) {
 }
 void Process::StartMPI(int argc, char** args) {
   MPI_Init(&argc, &args);
+#ifdef HPM
+  hpmInit();
+  // hpmStart("main function");
+#endif
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank==0) printroot("\n------------------------------------------\n");
@@ -576,7 +580,7 @@ bool Process::FullPass() {
 #pragma omp parallel shared(nthreads,chunk) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz)
     {
       tid = omp_get_thread_num();
-      if (tid == 0)
+      if (tid == 0 && rank==0 && iteration==0)
       {
         nthreads = omp_get_num_threads();
         printf("Starting  A*x-b using %d threads\n",nthreads);
@@ -739,8 +743,8 @@ bool Process::FullPass() {
 
     memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
     memset(P->Dx, 0, (P->dN) * sizeof(usedtype));
-    if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
-    if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+    ///if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+    //if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
     // TODO(timseries): can't scope these class data members dspec, kernel, P, and rank, which is bad omp pracitce..., find a better solution!
     //    int chunk = 10;
     //    int tid, nthreads;
@@ -749,10 +753,10 @@ bool Process::FullPass() {
 #pragma omp parallel shared(nthreads,chunk) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz)
     {
       tid = omp_get_thread_num();
-      if (tid == 0)
+      if (tid == 0 && rank==0 && iteration==0)
       {
         nthreads = omp_get_num_threads();
-        printf("Starting  A*x-b using %d threads\n",nthreads);
+        printf("Starting  AtAx_b using %d threads\n",nthreads);
         printf("Initializing matrices...\n");
       }
 #pragma omp parallel for schedule(static, chunk)
