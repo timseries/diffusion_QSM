@@ -56,8 +56,8 @@ ifdef openmp_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/opt/ibmcmp/xlsmp/3.1/lib64 -lxlsmp_pomp
-LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lpompprof_probe
-CPPFLAGS += -DOPENMP_PROFILE
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lpomprof_probe
+CPPFLAGS += -DOPENMP_PROFILE #never used
 endif
 endif
 
