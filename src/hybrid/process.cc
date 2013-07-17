@@ -46,6 +46,11 @@
 #include <omp.h>
 #endif
 
+#define NRA 62                 /* number of rows in matrix A */
+#define NCA 15                 /* number of columns in matrix A */
+#define NCB 7                  /* number of columns in matrix B */
+
+
 using ::util::checkVersion;
 using ::util::checkEndianness;
 using ::util::byteswap;
@@ -558,15 +563,24 @@ bool Process::FullPass() {
     memset(P->Dx, 0, (P->dN) * sizeof(usedtype));
     if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
     if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+    // TODO(timseries): can't scope these class data members dspec, kernel, P, and rank, which is bad omp pracitce..., find a better solution!
+    int chunk = 10;
+    int tid, nthreads;
+    int o,p,ox,oy,oz,px,py,pz,rx,ry,rz;
 
-    // omp_set_num_threads(2);
-#pragma omp parallel for private(o,p) num_threads(64)
+#pragma omp parallel shared(nthreads,chunk) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz)
+    {
+      tid = omp_get_thread_num();
+      if (tid == 0)
+      {
+        nthreads = omp_get_num_threads();
+        printf("Starting  A*x-b using %d threads\n",nthreads);
+        printf("Initializing matrices...\n");
+      }
+#pragma omp parallel for schedule(static, chunk)
       for (o = 0; o < dspec.nFG; o++) {
-          if (rank==0) printroot("num threads = %d\n",omp_get_num_threads());
-          // printroot("this thread num = %d\n",omp_get_thread_num());
-          int ox, oy, oz, px, py, pz, rx, ry, rz;
       
-        if (P->x[o]) {
+          if (P->x[o]) {
         
           oz = FGindices[o] / dspec.zoffset;
           oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
@@ -612,11 +626,11 @@ bool Process::FullPass() {
           }
         }
       }
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static, chunk)
       for (int p = 0; p < P->dN; p++) {
         P->Ax_b[p] -= deltab[p];
       }
-
+    }
 #else
     memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
     memset(P->Dx, 0, (P->dN) * sizeof(usedtype));
@@ -713,10 +727,87 @@ bool Process::FullPass() {
     cl_run(P->cl);
     //Profile
     cl_profile(P->cl, &P->profile2);
+#elif defined(USE_OPENMP)
+    // if (omp_get_dynamic()) {
+    //   printroot ("dynamic threads enabled in OPENMP\n");
+    // }
+
+    memset(P->Ax_b, 0, (P->dN) * sizeof(usedtype));
+    memset(P->Dx, 0, (P->dN) * sizeof(usedtype));
+    if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+    if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+    // TODO(timseries): can't scope these class data members dspec, kernel, P, and rank, which is bad omp pracitce..., find a better solution!
+    //    int chunk = 10;
+    //    int tid, nthreads;
+    //    int o,p,ox,oy,oz,px,py,pz,rx,ry,rz;
+
+#pragma omp parallel shared(nthreads,chunk) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz)
+    {
+      tid = omp_get_thread_num();
+      if (tid == 0)
+      {
+        nthreads = omp_get_num_threads();
+        printf("Starting  A*x-b using %d threads\n",nthreads);
+        printf("Initializing matrices...\n");
+      }
+#pragma omp parallel for schedule(static, chunk)
+      for (o = 0; o < dspec.nFG; o++) {
+        int ox, oy, oz, px, py, pz, rx, ry, rz;
+      
+        oz = FGindices[o] / dspec.zoffset;
+        oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+        ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+      
+        pz = dStart / dspec.zoffset;
+        py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+        px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;      
+      
+        ry = py - oy;
+        rz = pz - oz;
+      
+        //roffset = (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset;
+      
+        for (int p = dStart; p < dEnd; p++) {
+          px++;
+          if (px == dspec.size[0]) {
+            px = 0;
+            py++;
+            if (py == dspec.size[1]) {
+              py = 0;
+              pz++;
+              rz = pz - oz;
+            }
+            ry = py - oy;
+          }        
+          rx = px - ox;
+     
+          if (rx >= -kernel.halfsize && rx <= kernel.halfsize && ry >= -kernel.halfsize && ry <= kernel.halfsize && rz >= -kernel.halfsize && rz <= kernel.halfsize) {
+     
+            // Linear system
+            int mix = kernel.modelmap.mask[FGindices[o]];
+
+            if (mix == -1) { // spherical kernel
+              P->AtAx_b[o] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->Ax_b[p - dStart];
+            }
+            else if (P->PreCalcCylinders) {
+              P->AtAx_b[o] += cylColumns[mix*dN + p-dStart] * P->Ax_b[p - dStart];
+            }
+            else if (rx == 0 && ry == 0 && rz == 0) {
+              P->AtAx_b[o] += kernel.ctr[mix] * P->Ax_b[p - dStart];
+            }
+            else {
+              P->AtAx_b[o] += kernel.GetCyl(mix, rx, ry, rz) * P->Ax_b[p - dStart];
+            }
+  
+            // Laplacian
+            Laplacian(rx, ry, rz, P->DtDx, P->Dx, o, p-dStart);
+          }
+        }
+      }
+    }
 #else
     memset(P->AtAx_b, 0, P->dspec.nFG*sizeof(usedtype));
     memset(P->DtDx, 0, P->dspec.nFG*sizeof(usedtype));
-
     LWIterate(P->AtAx_b, P->Ax_b, 1, P->DtDx, P->Dx);
 #if 0
     for (o = 0; o < dspec.nFG; o++) {

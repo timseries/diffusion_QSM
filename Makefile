@@ -13,11 +13,6 @@ SOURCES		= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/modelmap.cc
 SOURCES		+= $(SOURCEDIR)/output.cc $(SOURCEDIR)/util.cc
 SOURCES		+= $(SOURCEDIR)/kernel.cc $(SOURCEDIR)/problem.cc
 SOURCES		+= $(SOURCEDIR)/process.cc $(SOURCEDIR)/hybrid_main.cc
-#SOURCES		= $(SOURCEDIR)/hybrid_main.cc
-#SOURCES		+= $(SOURCEDIR)/process.cc $(SOURCEDIR)/kernel.cc
-#SOURCES		+= $(SOURCEDIR)/modelmap.cc $(SOURCEDIR)/output.cc
-#SOURCES		+= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/util.cc
-
 else
 SOURCEDIR     	= src/legacy
 SOURCES		= $(SOURCEDIR)/chimap.cc
@@ -29,10 +24,11 @@ OBJECTS		= $(SOURCES:.cc=.o)
 ifdef openmp
 CPPFLAGS += -DUSE_OPENMP
 ifdef bluegene
-#LDFLAGS += -qsmp=omp
+CPPFLAGS += -qtm -qsmp=omp:speculative
 LDFLAGS += -qtm -qsmp=omp:speculative
 else
-LDFLAGS = -fopenmp
+CPPFLAGS += -fopenmp
+LDFLAGS += -fopenmp
 endif
 endif 
 
