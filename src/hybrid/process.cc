@@ -586,7 +586,7 @@ bool Process::FullPass() {
         printf("Starting  A*x-b using %d threads\n",nthreads);
         printf("Initializing matrices...\n");
       }
-#pragma omp parallel for schedule(static, chunk)
+#pragma omp parallel for
       for (o = 0; o < dspec.nFG; o++) {
       
           if (P->x[o]) {
@@ -635,7 +635,7 @@ bool Process::FullPass() {
           }
         }
       }
-#pragma omp parallel for schedule(static, chunk)
+#pragma omp parallel for
       for (int p = 0; p < P->dN; p++) {
         P->Ax_b[p] -= deltab[p];
       }
@@ -759,7 +759,7 @@ bool Process::FullPass() {
         printf("Starting  AtAx_b using %d threads\n",nthreads);
         printf("Initializing matrices...\n");
       }
-#pragma omp parallel for schedule(static, chunk)
+#pragma omp parallel for
       for (o = 0; o < dspec.nFG; o++) {
         int ox, oy, oz, px, py, pz, rx, ry, rz;
       

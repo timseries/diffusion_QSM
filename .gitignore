@@ -1,4 +1,6 @@
 out/
-profile/
+profile_results/
 src/*/dqsm
+src/*/profile*
+scorep*
 *.txt

@@ -1,7 +1,7 @@
 #default compiler is mpicxx
 #use make bluegene for normal compilation
 #use make bluegene profile to include profiling
-CC		= mpicxx
+CC		= $(PREP) mpicxx
 CPPFLAGS	= -c -O3
 CPPFLAGS 	+= -Iinclude
 LDFLAGS		=
