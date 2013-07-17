@@ -42,19 +42,19 @@
 
 #include <mpi.h>
 
-#ifdef USE_OPENMP
-#include <omp.h>
+#ifdef HPM
+extern "C" {
+	#include "hpm.h"
+}
 #endif
 
 #ifdef MPI_PROFILE
 #include <mpt.h>
 #endif
 
-
-#define NRA 62                 /* number of rows in matrix A */
-#define NCA 15                 /* number of columns in matrix A */
-#define NCB 7                  /* number of columns in matrix B */
-
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 using ::util::checkVersion;
 using ::util::checkEndianness;

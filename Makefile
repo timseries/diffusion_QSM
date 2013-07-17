@@ -36,7 +36,6 @@ ifdef bluegene
 CC = mpixlcxx_r
 
 ifdef hpm_profile
-#CC = mpixlcxx
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
