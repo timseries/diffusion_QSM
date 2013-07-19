@@ -586,7 +586,7 @@ bool Process::FullPass() {
         printf("Starting  A*x-b using %d threads\n",nthreads);
         printf("Initializing matrices...\n");
       }
-#pragma omp parallel for
+#pragma omp for
       for (o = 0; o < dspec.nFG; o++) {
       
           if (P->x[o]) {
@@ -635,7 +635,7 @@ bool Process::FullPass() {
           }
         }
       }
-#pragma omp parallel for
+#pragma omp for
       for (int p = 0; p < P->dN; p++) {
         P->Ax_b[p] -= deltab[p];
       }
@@ -733,7 +733,7 @@ bool Process::FullPass() {
     cl_enqueue_read(P->cl, P->cl_AtAx_b, P->cl_size_fg, P->AtAx_b);
     cl_enqueue_read(P->cl, P->cl_DtDx, P->cl_size_fg, P->DtDx);
     //Run queued operations
-    cl_run(P->cl);
+    cl_run(P->cl)pragma;
     //Profile
     cl_profile(P->cl, &P->profile2);
 #elif defined(USE_OPENMP)
@@ -759,7 +759,7 @@ bool Process::FullPass() {
         printf("Starting  AtAx_b using %d threads\n",nthreads);
         printf("Initializing matrices...\n");
       }
-#pragma omp parallel for
+#pragma omp for
       for (o = 0; o < dspec.nFG; o++) {
         int ox, oy, oz, px, py, pz, rx, ry, rz;
       
