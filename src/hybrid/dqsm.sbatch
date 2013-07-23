@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --time=1:00:00
-#SBATCH --nodes=16
+#SBATCH --nodes=1
 #SBATCH --job-name="dQSM"
 #SBATCH --output="out%j.txt"
 
@@ -9,11 +9,12 @@ mkdir $outdir
 
 executable=dqsm
 datadir=../../data/legacy
+#datadir=../../../../shared/data-mouse-correct-names
 data="-DeltaB $datadir/deltab.bin"
 mask="-mask $datadir/mask.bin"
 modelmap="-modelmap $datadir/models.bin"
 out="-out $outdir"
-maxiters="-maxiters 2"
+maxiters="-maxiters 5"
 model="-model m"
 alpha="-alpha 0.5"
 #previter="-x out41736/x_iter000925.bin"
