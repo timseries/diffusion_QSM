@@ -29,7 +29,7 @@
     \brief Define types used in this project. Some are set durin based on command line arguments.
 
     Define types and constants and macros used in this project. Some are set during compile based on command line arguments.
-    usedtype: the datatype used for numerical computations throughout (MPI, OpenMP). This is specified using a -DUSEDTYPE command line argument.
+    Real: the datatype used for numerical computations throughout (MPI, OpenMP). This is specified using a -DUSEDTYPE command line argument.
     models: this typedef specifies different model assumptions.
 
 */

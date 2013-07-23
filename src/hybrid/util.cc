@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Amanda Ng and Timothy Roberts ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
+// Author: amanda.ng@gmail.com, timothy.daniel.roberts@gmail.com
 
 /*! \file kernel.cc
   \brief Kernel class file.

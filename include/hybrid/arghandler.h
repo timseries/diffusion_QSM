@@ -41,7 +41,7 @@ class ArgHandler {
   virtual ~ArgHandler();
   void Init(int argc, char** args);
   bool GetArg(const char* option, char *&str) const ;
-  bool GetArg(const char* option, usedtype &value) const ;
+  bool GetArg(const char* option, Real &value) const ;
   bool GetArg(const char* option, int &value) const;
  private:
   int argc;

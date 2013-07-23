@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Amanda Ng and Timothy Roberts ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
+// Author: amanda.ng@gmail.com, timothy.daniel.roberts@gmail.com
 
 /*! \file kernel.cc
     \brief Kernel class file.
@@ -58,8 +58,8 @@ Kernel::Kernel() {
 }
 Kernel::~Kernel() {}
 void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
-  usedtype SPHa = dspec.B0 / (4 * M_PI);
-  usedtype minkernelvalue, maxkernelvalue = 0;
+  Real SPHa = dspec.B0 / (4 * M_PI);
+  Real minkernelvalue, maxkernelvalue = 0;
 
   for (int x = -halfsize; x <= halfsize; x++) {
     for (int y = -halfsize; y <= halfsize; y++) {
@@ -69,11 +69,11 @@ void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
           skernel[p] = 0;
           nnz--;
         } else {
-          usedtype rmag = sqrt(x*x + y*y + z*z);
-          usedtype rx = x/rmag;
-          usedtype ry = y/rmag;
-          usedtype rz = z/rmag;
-          usedtype br = dspec.bhat[0]*rx + dspec.bhat[1]*ry + dspec.bhat[2]*rz;
+          Real rmag = sqrt(x*x + y*y + z*z);
+          Real rx = x/rmag;
+          Real ry = y/rmag;
+          Real rz = z/rmag;
+          Real br = dspec.bhat[0]*rx + dspec.bhat[1]*ry + dspec.bhat[2]*rz;
           skernel[p] = SPHa * (3*br*br - 1) / (rmag*rmag*rmag);
 
           if (fabs(skernel[p]) > maxkernelvalue)
@@ -95,25 +95,25 @@ void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
 
 // returns the number of non-zeros
 void Kernel::CreateCylindricalKernel(const DataSpec &dspec) {
-  usedtype a = 0.475;
-  usedtype CYL2alpha = 2*a;
-  usedtype CYL3alpha = 3*a;
-  usedtype CYL4alpha3 = 1/(4*a*a*a);
-  usedtype CYLa = dspec.B0 / 2 / M_PI;
-  usedtype cmag = sqrt(dspec.caxis[0]*dspec.caxis[0] +
+  Real a = 0.475;
+  Real CYL2alpha = 2*a;
+  Real CYL3alpha = 3*a;
+  Real CYL4alpha3 = 1/(4*a*a*a);
+  Real CYLa = dspec.B0 / 2 / M_PI;
+  Real cmag = sqrt(dspec.caxis[0]*dspec.caxis[0] +
                        dspec.caxis[1]*dspec.caxis[1] +
                        dspec.caxis[2]*dspec.caxis[2]);
-  usedtype cx = dspec.caxis[0]/cmag;
-  usedtype cy = dspec.caxis[1]/cmag;
-  usedtype cz = dspec.caxis[2]/cmag;
-  usedtype cosbeta = cx*dspec.bhat[0] +
+  Real cx = dspec.caxis[0]/cmag;
+  Real cy = dspec.caxis[1]/cmag;
+  Real cz = dspec.caxis[2]/cmag;
+  Real cosbeta = cx*dspec.bhat[0] +
       cy*dspec.bhat[1] +
       cz*dspec.bhat[2];
-  usedtype CYLsin2beta = 1 - cosbeta*cosbeta;
-  usedtype gx = dspec.bhat[0] - cosbeta * cx;
-  usedtype gy = dspec.bhat[1] - cosbeta * cy;
-  usedtype gz = dspec.bhat[2] - cosbeta * cz;
-  usedtype minkernelvalue, maxkernelvalue = 0;
+  Real CYLsin2beta = 1 - cosbeta*cosbeta;
+  Real gx = dspec.bhat[0] - cosbeta * cx;
+  Real gy = dspec.bhat[1] - cosbeta * cy;
+  Real gz = dspec.bhat[2] - cosbeta * cz;
+  Real minkernelvalue, maxkernelvalue = 0;
 
   for (int x = -halfsize; x <= halfsize; x++) {
     for (int y = -halfsize; y <= halfsize; y++) {
@@ -122,13 +122,13 @@ void Kernel::CreateCylindricalKernel(const DataSpec &dspec) {
         if (x == 0 && y == 0 && z == 0) {
           ckernel[p] = dspec.B0/6 * (3 * cosbeta*cosbeta - 1);
         } else {
-          usedtype rc = x*cx + y*cy + z*cz;
+          Real rc = x*cx + y*cy + z*cz;
           if (fabs(rc) <= CYL2alpha) {
-            usedtype r2 = 1/(x*x + y*y + z*z - rc*rc);
-            usedtype rg = x*gx + y*gy + z*gz;
+            Real r2 = 1/(x*x + y*y + z*z - rc*rc);
+            Real rg = x*gx + y*gy + z*gz;
 
-            usedtype h = CYL2alpha-fabs(rc);
-            usedtype q = h*h * (CYL3alpha-h) * CYL4alpha3;
+            Real h = CYL2alpha-fabs(rc);
+            Real q = h*h * (CYL3alpha-h) * CYL4alpha3;
 
             ckernel[p] = CYLa * (2*rg*rg*r2 - CYLsin2beta) * r2 * q;
           } else {
@@ -151,25 +151,25 @@ void Kernel::CreateCylindricalKernel(const DataSpec &dspec) {
   }
 }
 void Kernel::InitMixedModel(const DataSpec &dspec) {
-  usedtype        a = 0.475;
+  Real        a = 0.475;
   CYL2alpha = 2*a;
   CYL3alpha = 3*a;
   CYL4alpha3 = 1/(4*a*a*a);
   CYLa = dspec.B0 / 2 / M_PI;
 
   for (int i = 0; i < modelmap.ncyls; i++) {
-    usedtype cmag = sqrt(modelmap.x[i]*modelmap.x[i] +
+    Real cmag = sqrt(modelmap.x[i]*modelmap.x[i] +
                          modelmap.y[i]*modelmap.y[i] +
                          modelmap.z[i]*modelmap.z[i]);
-    usedtype cx = modelmap.x[i]/cmag;
-    usedtype cy = modelmap.y[i]/cmag;
-    usedtype cz = modelmap.z[i]/cmag;
+    Real cx = modelmap.x[i]/cmag;
+    Real cy = modelmap.y[i]/cmag;
+    Real cz = modelmap.z[i]/cmag;
 
     modelmap.x[i] = cx;
     modelmap.y[i] = cy;
     modelmap.z[i] = cz;
 
-    usedtype cosbeta = cx*dspec.bhat[0] + cy*dspec.bhat[1] + cz*dspec.bhat[2];
+    Real cosbeta = cx*dspec.bhat[0] + cy*dspec.bhat[1] + cz*dspec.bhat[2];
 
     sin2beta[i] = 1 - cosbeta*cosbeta;
 
@@ -182,7 +182,7 @@ void Kernel::InitMixedModel(const DataSpec &dspec) {
 
 bool Kernel::Create(const models &model,
                const DataSpec &dspec,
-               const usedtype &threshold) {
+               const Real &threshold) {
   // if (rank==0) printroot("Creating kernel\n");
 
   this->model = model;
@@ -214,18 +214,18 @@ bool Kernel::Create(const models &model,
   N = size*size*size;
   nnz = N;
   if (model == MODEL_SPHERICAL) {
-    skernel = reinterpret_cast<usedtype*>(calloc(nnz, sizeof(usedtype)));
+    skernel = reinterpret_cast<Real*>(calloc(nnz, sizeof(Real)));
   } else {
   //    else if (model == MODEL_CYLINDRICAL) {
-  //            ckernel = (usedtype*) calloc(nnz, sizeof(usedtype));
+  //            ckernel = (Real*) calloc(nnz, sizeof(Real));
   //    }
-    skernel = reinterpret_cast<usedtype*>(calloc(nnz, sizeof(usedtype)));
-    ctr = reinterpret_cast<usedtype*>(calloc(modelmap.ncyls, sizeof(usedtype)));
-    sin2beta = reinterpret_cast<usedtype*>(
-        calloc(modelmap.ncyls, sizeof(usedtype)));
-    gx = reinterpret_cast<usedtype*>(calloc(modelmap.ncyls, sizeof(usedtype)));
-    gy = reinterpret_cast<usedtype*>(calloc(modelmap.ncyls, sizeof(usedtype)));
-    gz = reinterpret_cast<usedtype*>(calloc(modelmap.ncyls, sizeof(usedtype)));
+    skernel = reinterpret_cast<Real*>(calloc(nnz, sizeof(Real)));
+    ctr = reinterpret_cast<Real*>(calloc(modelmap.ncyls, sizeof(Real)));
+    sin2beta = reinterpret_cast<Real*>(
+        calloc(modelmap.ncyls, sizeof(Real)));
+    gx = reinterpret_cast<Real*>(calloc(modelmap.ncyls, sizeof(Real)));
+    gy = reinterpret_cast<Real*>(calloc(modelmap.ncyls, sizeof(Real)));
+    gz = reinterpret_cast<Real*>(calloc(modelmap.ncyls, sizeof(Real)));
   }
 
   yoffset = size;
@@ -247,7 +247,7 @@ bool Kernel::Create(const models &model,
 
   return true;
 }
-usedtype Kernel::Get(int x, int y, int z, int o) {
+Real Kernel::Get(int x, int y, int z, int o) {
   int ix = x + y*yoffset + z*zoffset;
   int mix;
   if (model == MODEL_MIXED &&  (mix = modelmap.mask[o]) != -1) {
@@ -257,14 +257,14 @@ usedtype Kernel::Get(int x, int y, int z, int o) {
     if (x == 0 && y == 0 && z == 0) {
       return ctr[mix];
     } else {
-      usedtype rc = x*modelmap.x[mix] + y*modelmap.y[mix] + z*modelmap.z[mix];
+      Real rc = x*modelmap.x[mix] + y*modelmap.y[mix] + z*modelmap.z[mix];
       if (fabs(rc) <= CYL2alpha) {
-        usedtype r2 = 1/(x*x + y*y + z*z - rc*rc);
-        usedtype rg = x*gx[mix] + y*gy[mix] + z*gz[mix];
+        Real r2 = 1/(x*x + y*y + z*z - rc*rc);
+        Real rg = x*gx[mix] + y*gy[mix] + z*gz[mix];
 
-        usedtype h = CYL2alpha-fabs(rc);
-        usedtype q = h*h * (CYL3alpha-h) * CYL4alpha3;
-        usedtype retval = CYLa * (2*rg*rg*r2 - sin2beta[mix]) * r2 * q;
+        Real h = CYL2alpha-fabs(rc);
+        Real q = h*h * (CYL3alpha-h) * CYL4alpha3;
+        Real retval = CYLa * (2*rg*rg*r2 - sin2beta[mix]) * r2 * q;
         if (fabs(retval) < threshold*B0)
           return 0.0;
         else
@@ -281,16 +281,16 @@ usedtype Kernel::Get(int x, int y, int z, int o) {
   }
 }
 
-usedtype Kernel::GetCyl(int mix, int x, int y, int z) {
-  usedtype rc = x*modelmap.x[mix] + y*modelmap.y[mix] + z*modelmap.z[mix];
+Real Kernel::GetCyl(int mix, int x, int y, int z) {
+  Real rc = x*modelmap.x[mix] + y*modelmap.y[mix] + z*modelmap.z[mix];
   if (fabs(rc) <= CYL2alpha) {
-    usedtype r2 = 1/(x*x + y*y + z*z - rc*rc);
-    usedtype rg = x*gx[mix] + y*gy[mix] + z*gz[mix];
+    Real r2 = 1/(x*x + y*y + z*z - rc*rc);
+    Real rg = x*gx[mix] + y*gy[mix] + z*gz[mix];
 
-    usedtype h = CYL2alpha-fabs(rc);
-    usedtype q = h*h * (CYL3alpha-h) * CYL4alpha3;
+    Real h = CYL2alpha-fabs(rc);
+    Real q = h*h * (CYL3alpha-h) * CYL4alpha3;
 
-    usedtype retval = CYLa * (2*rg*rg*r2 - sin2beta[mix]) * r2 * q;
+    Real retval = CYLa * (2*rg*rg*r2 - sin2beta[mix]) * r2 * q;
     if (fabs(retval) < threshold*B0)
       return 0.0;
     else

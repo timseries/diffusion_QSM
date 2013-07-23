@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Amanda Ng and Timothy Roberts ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
+// Author: amanda.ng@gmail.com, timothy.daniel.roberts@gmail.com
 
 /*! \file problem.cc
   \brief Problem class file.
@@ -42,7 +42,7 @@
 
 #include <mpi.h>
 
-Problem::Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, usedtype beta) : dspec(dspec) {
+Problem::Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real beta) : dspec(dspec) {
   // Get start and end of local portion of Deltab array
   dStart = dspec.start;
   dEnd = dspec.end;
@@ -51,27 +51,27 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, 
   //==================================================================================================================
   // Create Ax_b array
   printroot("   Creating Ax_b array ...\n");
-  Ax_b = (usedtype*) calloc(dN, sizeof(usedtype));
+  Ax_b = (Real*) calloc(dN, sizeof(Real));
     
   //==================================================================================================================
   // Create AtAx_b array
   printroot("   Creating AtAx_b array ...\n");
-  AtAx_b = (usedtype*) calloc(dspec.nFG, sizeof(usedtype));
+  AtAx_b = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
   // Create Dx array
   printroot("   Creating Dx array ...\n");
-  Dx = (usedtype*) calloc(dN, sizeof(usedtype));
+  Dx = (Real*) calloc(dN, sizeof(Real));
     
   //==================================================================================================================
   // Create DtDx array
   printroot("   Creating DtDx array ...\n");
-  DtDx = (usedtype*) calloc(dspec.nFG, sizeof(usedtype));
+  DtDx = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
   // Create x array
   printroot("   Creating x array ...\n");
-  x = (usedtype*) calloc(dspec.nFG, sizeof(usedtype));
+  x = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
   // Create foreground indices array
@@ -80,13 +80,13 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, 
 
   //==================================================================================================================
   // Create cylColumns array
-  double M = (double)kernel.modelmap.ncyls * dN * sizeof(usedtype);
+  double M = (double)kernel.modelmap.ncyls * dN * sizeof(Real);
   cylColumns = NULL;
   //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
   if (1)  //Force cylinder calc on the fly for testing
   {
     printf("Require %.0f bytes for cylColumns array, attempting allocation...", M);
-    cylColumns = (usedtype*) malloc(M);
+    cylColumns = (Real*) malloc(M);
   }
   if (cylColumns == NULL) {
     printroot("   Not enough memory to pre-calculate cylinder kernels.\n");
@@ -147,12 +147,12 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, 
   if (rank == 0) fprintf(stderr, "%s\n", cl->log);
 
   //Ensure enough local memory available for chosen kernel
-  //cl_checklocalmem(cl, cl->nthreads * sizeof(usedtype) * (nlaw ? 7 : 4));
+  //cl_checklocalmem(cl, cl->nthreads * sizeof(Real) * (nlaw ? 7 : 4));
 
   // Allocate GPU global memory buffers
-  cl_size_n = sizeof(usedtype) * dN;
-  cl_size_fg = sizeof(usedtype) * dspec.nFG;
-  cl_size_cyl = sizeof(usedtype) * kernel.modelmap.ncyls;
+  cl_size_n = sizeof(Real) * dN;
+  cl_size_fg = sizeof(Real) * dspec.nFG;
+  cl_size_cyl = sizeof(Real) * kernel.modelmap.ncyls;
   cl_Ax_b = cl_new_buffer(cl, CL_MEM_READ_WRITE, cl_size_n);
   cl_Dx = cl_new_buffer(cl, CL_MEM_READ_WRITE, cl_size_n);
   cl_AtAx_b = cl_new_buffer(cl, CL_MEM_READ_WRITE, cl_size_fg);
@@ -167,7 +167,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, 
   cl_mapx = cl_new_buffer(cl, CL_MEM_READ_ONLY, cl_size_cyl);
   cl_mapy = cl_new_buffer(cl, CL_MEM_READ_ONLY, cl_size_cyl);
   cl_mapz = cl_new_buffer(cl, CL_MEM_READ_ONLY, cl_size_cyl);
-  cl_skernel = cl_new_buffer(cl, CL_MEM_READ_ONLY, kernel._nnz * sizeof(usedtype));
+  cl_skernel = cl_new_buffer(cl, CL_MEM_READ_ONLY, kernel._nnz * sizeof(Real));
   cl_mask = cl_new_buffer(cl, CL_MEM_READ_ONLY, sizeof(int) * dspec.N);
   cl_deltab = cl_new_buffer(cl, CL_MEM_READ_ONLY, cl_size_n);
   //Resize to get new group calc...

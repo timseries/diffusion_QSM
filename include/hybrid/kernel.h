@@ -48,25 +48,25 @@ class Kernel {
   void InitMixedModel(const DataSpec &dspec);
   bool Create(const models &model,
               const DataSpec &dspec,
-              const usedtype &threshold);
-  usedtype Get(int x, int y, int z, int o);
-  usedtype GetCyl(int mix, int x, int y, int z);
+              const Real &threshold);
+  Real Get(int x, int y, int z, int o);
+  Real GetCyl(int mix, int x, int y, int z);
   void close(void);
 
   models model;
-  usedtype *skernel, *ckernel;
-  usedtype *kernel;
-  usedtype threshold;
-  usedtype B0;
-  usedtype CYL2alpha;
-  usedtype CYL3alpha;
-  usedtype CYL4alpha3;
-  usedtype CYLa;
-  usedtype *ctr;
-  usedtype *sin2beta;
-  usedtype *gx;
-  usedtype *gy;
-  usedtype *gz;
+  Real *skernel, *ckernel;
+  Real *kernel;
+  Real threshold;
+  Real B0;
+  Real CYL2alpha;
+  Real CYL3alpha;
+  Real CYL4alpha3;
+  Real CYLa;
+  Real *ctr;
+  Real *sin2beta;
+  Real *gx;
+  Real *gy;
+  Real *gz;
   int yoffset;
   int zoffset;
   ModelMap modelmap;

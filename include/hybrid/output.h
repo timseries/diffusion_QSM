@@ -43,11 +43,11 @@ class Output {
   Output();
   virtual ~Output();
   void Init(const ArgHandler &arghandler, int rank, int size);
-  void LocalArray(int onproc, usedtype* array,
+  void LocalArray(int onproc, Real* array,
                   int ndims, int* dims, const char* arrayname);
   void LocalArray(int onproc, bool* array,
                   int ndims, int* dims, const char* arrayname);
-  void DistrArray(usedtype* array, int localsize,
+  void DistrArray(Real* array, int localsize,
                   int ndims, int* dims, const char* arrayname);
   void Close();
   char *outdir;

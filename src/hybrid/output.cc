@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Amanda Ng and Timothy Roberts ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
+// Author: amanda.ng@gmail.com, timothy.daniel.roberts@gmail.com
 
 /*! \file output.cc
   \brief Output class file.
@@ -85,7 +85,7 @@ void Output::Init(const ArgHandler &arghandler, int rank, int size) {
 #endif
     int endchkval = 1;
     // Write precision type to mat file
-    if (sizeof(usedtype) == sizeof(float)) {
+    if (sizeof(Real) == sizeof(float)) {
       sprintf(tmpstr, "TmpChiMapOut.precision = 'single';\n");
     } else {
       sprintf(tmpstr, "TmpChiMapOut.precision = 'double';\n");
@@ -112,13 +112,13 @@ void Output::Init(const ArgHandler &arghandler, int rank, int size) {
   initialised = true;
 }
 
-void Output::LocalArray(int onproc, usedtype* array, int ndims, int* dims, const char* arrayname) {
+void Output::LocalArray(int onproc, Real* array, int ndims, int* dims, const char* arrayname) {
   int			ndims0;
   int			*dims0;
   int			arraynamelength;
   char		*arrayname0;
   int			n;
-  usedtype	*array0;
+  Real	*array0;
 
   if (rank != onproc && rank != 0) return;
 
@@ -137,7 +137,7 @@ void Output::LocalArray(int onproc, usedtype* array, int ndims, int* dims, const
       MPI_Send(dims,				ndims,				MPI_INT,		0, 1, MPI_COMM_WORLD);
       MPI_Send(&arraynamelength,	1,					MPI_INT,		0, 2, MPI_COMM_WORLD);
       MPI_Send((char*)arrayname,	arraynamelength,	MPI_CHAR,		0, 3, MPI_COMM_WORLD);
-      MPI_Send(array,				n,					MPI_USEDTYPE,	0, 4, MPI_COMM_WORLD);
+      MPI_Send(array,				n,					MPI_Real,	0, 4, MPI_COMM_WORLD);
     }
 
     // receive data
@@ -151,8 +151,8 @@ void Output::LocalArray(int onproc, usedtype* array, int ndims, int* dims, const
       n = 1;
       for (int i = 0; i < ndims0; i++)
         n *= dims0[i];
-      array0 = (usedtype*) calloc(n, sizeof(usedtype));
-      MPI_Recv(array0,			n,					MPI_USEDTYPE,	onproc, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      array0 = (Real*) calloc(n, sizeof(Real));
+      MPI_Recv(array0,			n,					MPI_Real,	onproc, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
   // otherwise, set values and pointers as though process 0 had sent data to itself
@@ -170,7 +170,7 @@ void Output::LocalArray(int onproc, usedtype* array, int ndims, int* dims, const
   if (rank == 0) {
 
     // write array to binary file
-    MPI_File_write(binfile, array0, n, MPI_USEDTYPE, MPI_STATUS_IGNORE);
+    MPI_File_write(binfile, array0, n, MPI_Real, MPI_STATUS_IGNORE);
 
     // write read-in matlab code to matlab file
     if (ndims > 1) {
@@ -203,7 +203,7 @@ void Output::LocalArray(int onproc, usedtype* array, int ndims, int* dims, const
      for (int i = 0; i < ndims; i++)
      n *= dims[i];
 
-     MPI_File_write_shared(binfile, array, n, MPI_USEDTYPE, MPI_STATUS_IGNORE);
+     MPI_File_write_shared(binfile, array, n, MPI_Real, MPI_STATUS_IGNORE);
 
      if (ndims > 1) {
      sprintf(tmpstr, "%s = reshape(fread(TmpChiMapOut.fid, %d, TmpChiMapOut.precision), [%d", arrayname, n, dims[0]);
@@ -305,14 +305,14 @@ void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const cha
   }
 }
 
-void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, const char* arrayname) {
+void Output::DistrArray(Real* array, int localsize, int ndims, int* dims, const char* arrayname) {
   int			n;
-  usedtype	*array0 = NULL;
+  Real	*array0 = NULL;
   MPI_Request req[2];
   // Send data to process 0
   if (rank>0){
     MPI_Isend(&localsize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &req[0]);
-    MPI_Isend(array, localsize, MPI_USEDTYPE, 0, 1, MPI_COMM_WORLD, &req[1]);
+    MPI_Isend(array, localsize, MPI_Real, 0, 1, MPI_COMM_WORLD, &req[1]);
   }
 
   // On process 0, receive and write data to file.
@@ -335,19 +335,19 @@ void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, co
         // realloc memory if the localsize has increased
         if (n < localsize) {
           if (rank==0) printroot( "reallocating  ...\n");
-          array0 = (usedtype*) realloc(array0, localsize*sizeof(usedtype));
+          array0 = (Real*) realloc(array0, localsize*sizeof(Real));
           n = localsize;
         }
         if (rank==0) printroot( "receiving 2 of 2 ...\n");
 
-        MPI_Recv(array0, localsize, MPI_USEDTYPE, p, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(array0, localsize, MPI_Real, p, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
       else{
         array0=array;
       }
       if (rank==0) printroot( "writing 1 of 2 ...\n");
 
-      MPI_File_write(binfile, array0, localsize, MPI_USEDTYPE, MPI_STATUS_IGNORE);
+      MPI_File_write(binfile, array0, localsize, MPI_Real, MPI_STATUS_IGNORE);
       if (p==0){
         array0=NULL;
       }
@@ -387,7 +387,7 @@ void Output::DistrArray(usedtype* array, int localsize, int ndims, int* dims, co
     for (int i = 0; i < ndims; i++)
     n *= dims[i];
 
-    MPI_File_write_ordered(binfile, array, localsize, MPI_USEDTYPE, MPI_STATUS_IGNORE);
+    MPI_File_write_ordered(binfile, array, localsize, MPI_Real, MPI_STATUS_IGNORE);
 
     if (rank == 0) {
     if (ndims > 1) {

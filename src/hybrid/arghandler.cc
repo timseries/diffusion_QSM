@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -62,7 +62,7 @@ bool ArgHandler::GetArg(const char* option, char *&str) const {
   return false;
 }
 
-bool ArgHandler::GetArg(const char* option, usedtype &value) const {
+bool ArgHandler::GetArg(const char* option, Real &value) const {
   for (int i = 0; i < argc; i++) {
     if (strcmp(args[i], option) == 0) {
       if (i == argc-1) {

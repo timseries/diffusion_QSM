@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
 //       names of its contributors may be used to endorse or promote products
 //       derived from this software without specific prior written permission.
 //
-// THIS SOFTWARE IS PROVIDED BY Timothy Roberts and Amanda Ng ''AS IS'' AND ANY
+// THIS SOFTWARE IS PROVIDED BY Amanda Ng and Timothy Roberts ''AS IS'' AND ANY
 // EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 // DISCLAIMED. IN NO EVENT SHALL <copyright holder> BE LIABLE FOR ANY
@@ -63,7 +63,7 @@ bool ModelMap::Process(DataSpec &dspec, const ArgHandler &arghandler) {
   bool flgByteSwap;
   MPI_Offset offset, disp;
   bool flg;
-  usedtype threshold;
+  Real threshold;
   double *mx, *my, *mz;
 
   //  if (rank==0) printroot("Loading model map ...\n");
@@ -148,9 +148,9 @@ bool ModelMap::Process(DataSpec &dspec, const ArgHandler &arghandler) {
   // GATHER X Y AND Z ARRAYS
   ncyls = ix;
   //  if (rank==0) printroot("   number cylinders = %d\n", ncyls);
-  x = reinterpret_cast<usedtype*>(calloc(ncyls, sizeof(usedtype)));
-  y = reinterpret_cast<usedtype*>(calloc(ncyls, sizeof(usedtype)));
-  z = reinterpret_cast<usedtype*>(calloc(ncyls, sizeof(usedtype)));
+  x = reinterpret_cast<Real*>(calloc(ncyls, sizeof(Real)));
+  y = reinterpret_cast<Real*>(calloc(ncyls, sizeof(Real)));
+  z = reinterpret_cast<Real*>(calloc(ncyls, sizeof(Real)));
   for (int i = 0; i < dspec.N; i++) {
     if (mask[i] >= 0) {
       x[mask[i]] = mx[i];

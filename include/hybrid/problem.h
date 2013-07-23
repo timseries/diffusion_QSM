@@ -42,20 +42,20 @@
 class Problem {
  public:
   Problem();
-  Problem(Kernel &kernel, DataSpec &dspec, usedtype tau, usedtype alpha, usedtype beta);
+  Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real beta);
   virtual ~Problem();
   DataSpec &dspec;
   int dStart, dEnd;
   int dN;  
 
-  usedtype *Ax_b;  
-  usedtype *AtAx_b;
-  usedtype *Dx;
-  usedtype *DtDx;
-  usedtype *x;
+  Real *Ax_b;  
+  Real *AtAx_b;
+  Real *Dx;
+  Real *DtDx;
+  Real *x;
 
   bool PreCalcCylinders;
-  usedtype *cylColumns;
+  Real *cylColumns;
   int *FGindices; // indices corresponding to foreground elements
 
 #ifdef USE_OPENCL

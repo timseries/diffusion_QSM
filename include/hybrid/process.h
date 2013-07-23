@@ -51,8 +51,8 @@ class Process {
   bool loadDeltaB();
   bool loadMask();
   bool FullPass();
-  void LWIterate(usedtype* LHS, usedtype* RHS, int dir, usedtype* LapLHS, usedtype* LapRHS);
-  void Laplacian(int rx, int ry, int rz, usedtype* LHS, usedtype* RHS, int o, int p);
+  void LWIterate(Real* LHS, Real* RHS, int dir, Real* LapLHS, Real* LapRHS);
+  void Laplacian(int rx, int ry, int rz, Real* LHS, Real* RHS, int o, int p);
   bool WriteOut();
   bool CleanUp();
   models model;
@@ -61,9 +61,9 @@ class Process {
   DataSpec dspec;
   Problem *P;
   
-  usedtype threshold;
-  usedtype *deltab;
-  usedtype *chi;
+  Real threshold;
+  Real *deltab;
+  Real *chi;
   
   int rank;
   int size;

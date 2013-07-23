@@ -44,9 +44,9 @@ class ModelMap {
   bool Process(DataSpec &dspec, const ArgHandler &arghandler);
   void close(void);
   int *mask;
-  usedtype *x;
-  usedtype *y;
-  usedtype *z;
+  Real *x;
+  Real *y;
+  Real *z;
   int ncyls;
 };
 #endif  // INCLUDE_MODELMAP_H_
