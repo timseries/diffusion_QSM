@@ -11,7 +11,7 @@ maxiters="-maxiters $6"
 model="-model m"
 alpha="-alpha 0.5"
 np="-np $3"
-bluegenedir=/bgsys
+bluegenedir=/etc
 export MAX_OMP_THREADS=$5
 
 #previter="-x out41736/x_iter000925.bin"
@@ -36,21 +36,21 @@ if [ -d $bluegenedir ]; then
 #modify the sbatch file
     echo "#SBATCH --nodes="$2 >> $outdir/dqsm.sbatch
     echo "" >> $outdir/dqsm.sbatch
-    echo "executable=./dqsm" >> $outdir/dqsm.sbatch
-    echo "data=-DeltaB ../../../."$datadir"/deltab.bin" >> $outdir/dqsm.sbatch
-    echo "mask=-mask ../../../."$datadir"/mask.bin" >> $outdir/dqsm.sbatch
-    echo "modelmap=-modelmap ../../../."$datadir"/models.bin" >> $outdir/dqsm.sbatch
-    echo "out=-out ./output" >> $outdir/dqsm.sbatch
-    echo "maxiters="$maxiters >> $outdir/dqsm.sbatch
-    echo "model="$model >> $outdir/dqsm.sbatch
-    echo "alpha="$alpha >> $outdir/dqsm.sbatch
+    echo "executable=\"./dqsm\"" >> $outdir/dqsm.sbatch
+    echo "data=\"-DeltaB ../../../.$datadir/deltab.bin\"" >> $outdir/dqsm.sbatch
+    echo "mask=\"-mask ../../../.$datadir/mask.bin\"" >> $outdir/dqsm.sbatch
+    echo "modelmap=\"-modelmap ../../../.$datadir/models.bin\"" >> $outdir/dqsm.sbatch
+    echo "out=\"-out ./output\"" >> $outdir/dqsm.sbatch
+    echo "maxiters=\"$maxiters\"" >> $outdir/dqsm.sbatch
+    echo "model=\"$model\"" >> $outdir/dqsm.sbatch
+    echo "alpha=\"$alpha\"" >> $outdir/dqsm.sbatch
     echo "" >> $outdir/dqsm.sbatch
     echo "time srun --ntasks-per-node="$4" \$executable \$model \$data \$mask \$modelmap \$out \$maxiters \$previter \$alpha" >> $outdir/dqsm.sbatch
 #copy the executable to the output directory
     cp $executable $outdir
 #change to that directory and issue the sbatch call
     cd $outdir
-    sbatch dqsm.sbatch
+    echo dqsm.sbatch
 else
 #run locally
     echo "mpirun $np $executable $model $data $mask $modelmap $out $maxiters $alpha"
