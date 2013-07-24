@@ -39,8 +39,11 @@ ifdef hpm_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
+ifdef openmp
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm
-#LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm
+else
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm
+endif
 CPPFLAGS += -DHPM
 endif
 
@@ -57,7 +60,7 @@ CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/opt/ibmcmp/xlsmp/3.1/lib64 -lxlsmp_pomp
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lpomprof_probe
-CPPFLAGS += -DOPENMP_PROFILE #never used
+CPPFLAGS += -DOPENMP_PROFILE #never used in the code, just for consistency...
 endif
 endif
 
