@@ -30,7 +30,7 @@ out="-out $outdir"
 #cross platform support
 echo $bluegenedir
 if [ -d $bluegenedir ]; then
-    echo "yes"
+    echo "we're making/running on bluegene"
 #copy the sbatch template to the output directory
     cp ./dqsm.sbatch.template $outdir/dqsm.sbatch
 #modify the sbatch file
