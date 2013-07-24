@@ -24,8 +24,8 @@ OBJECTS		= $(SOURCES:.cc=.o)
 ifdef omp
 CPPFLAGS += -DUSE_OPENMP
 ifdef bluegene
-CPPFLAGS += -qtm -qsmp=omp
-LDFLAGS += -qtm -qsmp=omp
+CPPFLAGS += -qsmp=omp
+LDFLAGS += -qsmp=omp
 else
 CPPFLAGS += -fopenmp
 LDFLAGS += -fopenmp
