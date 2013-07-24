@@ -36,10 +36,10 @@ if [ -d $bluegenedir ]; then
 #modify the sbatch file
     echo "#SBATCH --nodes="$2 >> $outdir/dqsm.sbatch
     echo "" >> $outdir/dqsm.sbatch
-    echo "executable="$executable >> $outdir/dqsm.sbatch
-    echo "data=-DeltaB ../../../.."$datadir"/deltab.bin" >> $outdir/dqsm.sbatch
-    echo "mask=-mask ../../../.."$datadir"/mask.bin" >> $outdir/dqsm.sbatch
-    echo "modelmap=-modelmap ../../../.."$datadir"/models.bin" >> $outdir/dqsm.sbatch
+    echo "executable=./dqsm" >> $outdir/dqsm.sbatch
+    echo "data=-DeltaB ../../../."$datadir"/deltab.bin" >> $outdir/dqsm.sbatch
+    echo "mask=-mask ../../../."$datadir"/mask.bin" >> $outdir/dqsm.sbatch
+    echo "modelmap=-modelmap ../../../."$datadir"/models.bin" >> $outdir/dqsm.sbatch
     echo "out=-out ./output" >> $outdir/dqsm.sbatch
     echo "maxiters="$maxiters >> $outdir/dqsm.sbatch
     echo "model="$model >> $outdir/dqsm.sbatch
@@ -50,7 +50,7 @@ if [ -d $bluegenedir ]; then
     cp $executable $outdir
 #change to that directory and issue the sbatch call
     cd $outdir
-    echo dqsm.sbatch
+    sbatch dqsm.sbatch
 else
 #run locally
     echo "mpirun $np $executable $model $data $mask $modelmap $out $maxiters $alpha"
