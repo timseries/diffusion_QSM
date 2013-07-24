@@ -9,13 +9,13 @@ import pylab
 import pdb
 import re
 
-def plotomp(indir,hpmfiles):
+def plotomp(indir,ompfiles):
     processes=[]
     time=[]
     allsecnames=[]
     allsecdata=[]
     allseclabels=[]
-    for fname in hpmfiles:
+    for fname in ompfiles:
         with open(indir+'/'+fname) as f:
             data = f.read()
             data = data.split('\n')
@@ -46,7 +46,7 @@ def plotomp(indir,hpmfiles):
         allsecnames+=[secnames]
         allsecdata+=[secdata]
         allseclabels+=[seclabels]
-
+    pdb.set_trace()
     master_metric_names=secnames[0]
 #    master_metric_names=sorted(list(set(list(itertools.chain(*metric_names)))),key=str.lower)
 #    master_metric_names=sorted(list(set(list(itertools.chain(*metric_names)))),key=str.lower)

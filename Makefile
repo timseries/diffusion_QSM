@@ -21,7 +21,7 @@ endif
 EXECUTABLE	= $(SOURCEDIR)/dqsm
 OBJECTS		= $(SOURCES:.cc=.o)
 
-ifdef openmp
+ifdef omp
 CPPFLAGS += -DUSE_OPENMP
 ifdef bluegene
 CPPFLAGS += -qtm -qsmp=omp
@@ -42,7 +42,7 @@ LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
 ifdef openmp
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm
 else
-LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm
+LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm -qsmp=omp
 endif
 CPPFLAGS += -DHPM
 endif
@@ -55,7 +55,7 @@ LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lmpitrace
 CPPFLAGS += -DMPI_PROFILE
 endif
 
-ifdef openmp_profile
+ifdef omp_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/opt/ibmcmp/xlsmp/3.1/lib64 -lxlsmp_pomp
