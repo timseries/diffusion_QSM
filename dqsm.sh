@@ -3,7 +3,7 @@
 #usage ./dqsm build_type number_of_nodes number_of_processes number_of_processes_per_node number_of_threads number_of_iterations
 #build_type can be either "hybrid" or "legacy"
 executable=./src/$1/dqsm
-datadir=./data/legacy
+datadir=./data/mouse
 data="-DeltaB $datadir/deltab.bin"
 mask="-mask $datadir/mask.bin"
 modelmap="-modelmap $datadir/models.bin"
@@ -11,7 +11,7 @@ maxiters="-maxiters $6"
 model="-model m"
 alpha="-alpha 0.5"
 np="-np $3"
-bluegenedir=/etc
+bluegenedir=/bgsys
 export MAX_OMP_THREADS=$5
 
 #previter="-x out41736/x_iter000925.bin"
@@ -36,6 +36,7 @@ if [ -d $bluegenedir ]; then
 #modify the sbatch file
     echo "#SBATCH --nodes="$2 >> $outdir/dqsm.sbatch
     echo "" >> $outdir/dqsm.sbatch
+    echo "mkdir output" >> $outdir/dqsm.sbatch
     echo "executable=\"./dqsm\"" >> $outdir/dqsm.sbatch
     echo "data=\"-DeltaB ../../../.$datadir/deltab.bin\"" >> $outdir/dqsm.sbatch
     echo "mask=\"-mask ../../../.$datadir/mask.bin\"" >> $outdir/dqsm.sbatch
@@ -50,7 +51,7 @@ if [ -d $bluegenedir ]; then
     cp $executable $outdir
 #change to that directory and issue the sbatch call
     cd $outdir
-    echo dqsm.sbatch
+    sbatch dqsm.sbatch
 else
 #run locally
     echo "mpirun $np $executable $model $data $mask $modelmap $out $maxiters $alpha"

@@ -5,3 +5,4 @@ src/*/profile*
 scorep*
 *.txt
 *.pyc
+data/mouse
