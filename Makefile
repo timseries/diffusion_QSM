@@ -34,7 +34,7 @@ endif
 
 ifdef bluegene
 CC = mpixlcxx_r
-
+CPPFLAGS += -qstrict
 ifdef hpm_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/

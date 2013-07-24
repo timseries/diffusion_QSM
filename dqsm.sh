@@ -12,7 +12,14 @@ model="-model m"
 alpha="-alpha 0.5"
 np="-np $3"
 bluegenedir=/bgsys
-export MAX_OMP_THREADS=$5
+
+#environment variables
+export HPM_OUTPUT_PROCESS=ROOT
+export HPM_SCOPE=node
+export HPM_ASC_OUTPUT=yes
+export HPM_METRICS=yes
+
+export OMP_NUM_THREADS=$5
 
 #previter="-x out41736/x_iter000925.bin"
 
@@ -49,8 +56,9 @@ if [ -d $bluegenedir ]; then
     echo "time srun --ntasks-per-node="$4" \$executable \$model \$data \$mask \$modelmap \$out \$maxiters \$previter \$alpha" >> $outdir/dqsm.sbatch
 #copy the executable to the output directory
     cp $executable $outdir
-#change to that directory and issue the sbatch call
+#change to that directory
     cd $outdir
+#sbatch call
     sbatch dqsm.sbatch
 else
 #run locally
