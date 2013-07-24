@@ -1,0 +1,5 @@
+#!/bin/sh
+#SBATCH --time=1:00:00
+
+#SBATCH --job-name="dQSM"
+#SBATCH --output="out%j.txt"
