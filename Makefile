@@ -39,7 +39,7 @@ ifdef hpm_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/bgsys/drivers/ppcfloor/bgpm/lib/
-ifdef openmp
+ifdef omp
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm
 else
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm -qsmp=omp
