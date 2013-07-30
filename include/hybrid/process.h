@@ -63,7 +63,12 @@ class Process {
   Kernel kernel;
   DataSpec dspec;
   Problem *P;
-  
+
+  Real *cylColumns;
+  int *FGindices; // indices corresponding to foreground elements
+  int dStart, dEnd;
+  int dN;  
+
   Real threshold;
   Real *deltab;
   Real *chi;

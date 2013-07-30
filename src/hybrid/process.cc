@@ -71,6 +71,11 @@ Process::Process() {
   deltab = NULL;
   chi = NULL;
   filepath = NULL;
+  FGindices = NULL;
+  cylColumns = NULL;
+  dStart = 0;
+  dEnd = 0;
+  dN = 0;
 }
 Process::~Process() {}
 bool Process::Init(int argc, char** args) {
@@ -143,10 +148,10 @@ void Process::HandleArgs(int argc, char** args) {
 }
 void Process::StartMPI(int argc, char** args) {
   MPI_Init(&argc, &args);
-#ifdef HPM
-  hpmInit();
-  // hpmStart("main function");
-#endif
+// #ifdef HPM
+//   hpmInit();
+//   // hpmStart("main function");
+// #endif
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank==0) printroot("\n------------------------------------------\n");
@@ -343,13 +348,13 @@ bool Process::FullPass() {
 
   Real tau = 0.15, alpha = 0.75, beta = 0.25;
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
-  Real *cylColumns;
-  int *FGindices; // indices corresponding to foreground elements
+  //  Real *cylColumns;
+  //  int *FGindices; // indices corresponding to foreground elements
 
   Real *new_x;
 
-  int dStart, dEnd;
-  int dN;  
+  //  int dStart, dEnd;
+  //  int dN;  
   int recvcounts, displs;
 
   //stopping criteria
@@ -434,7 +439,7 @@ bool Process::FullPass() {
       if (rank==0) printroot("Cannot find file %s\n", fname);
       return false;
     }
-
+ 
     MPI_File_read(fptr, &iteration, 1, MPI_INT, MPI_STATUS_IGNORE);
     MPI_File_read(fptr, P->x, dspec.nFG, MPI_Real, MPI_STATUS_IGNORE);
 
@@ -452,7 +457,7 @@ bool Process::FullPass() {
     }
   }
 
-  // Create new_x array, OK implementation reallocates on every iteration for some reason
+
   // if (rank==0) printroot("   Creating new_x array ...\n");
   // new_x = (Real*) calloc(dspec.nFG, sizeof(Real));
   // memset(new_x, 0, dspec.nFG * sizeof(Real));
@@ -512,9 +517,9 @@ bool Process::FullPass() {
 #endif
   //==================================================================================================================
   // Start iterations
-#ifdef HPM
-  hpmStart("iteration");
-#endif
+// #ifdef HPM
+//   hpmStart("iteration");
+// #endif
 
   if (rank==0) printroot("   Starting iterations ...\n");
   //old_rms_diff_x = -1;
@@ -646,9 +651,9 @@ bool Process::FullPass() {
 
     iteration++;}
     while (rms_diff_x / rms_x > relative_threshold && rms_diff_x > absolute_threshold && iteration < max_iters);
-#ifdef HPM
-  hpmStop("iteration");
-#endif
+// #ifdef HPM
+//   hpmStop("iteration");
+// #endif
 
   tEnd = MPI_Wtime();
   tsecs = tEnd - tStart;
@@ -705,7 +710,7 @@ bool Process::FullPass() {
   void Process::MultAdd(Real* result_fidelity, Real* result_reguliarizer,
                       Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
                       Real* addend, bool dir) {
-  Real tau = 0.15, alpha = 0.75, beta = 0.25;
+
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   Real *cylColumns;
   int *FGindices; // indices corresponding to foreground elements
@@ -725,9 +730,13 @@ bool Process::FullPass() {
 
   int o, ox, oy, oz;
   int p, px, py, pz;
-  int rx, ry, rz;
-  int _rx, _ry, _rz;
-  int mix;
+  int rx = 0;
+  int ry = 0;
+  int rz = 0;
+  int _rx = 0;
+  int _ry = 0;
+  int = _rz = 0;
+  int mix = 0;
 
   int nthreads,chunk,tid;
 
@@ -904,10 +913,10 @@ bool Process::CleanUp(){
   //   MPI_Send(NULL, 0, MPI_CHAR, rank+1, 0, MPI_COMM_WORLD);
   //     }
   MPI_Finalize();
-#ifdef HPM
-  // hpmStop("main function");
-  hpmTerminate();
-#endif
+// #ifdef HPM
+//   // hpmStop("main function");
+//   hpmTerminate();
+// #endif
   // TODO(timhseries): include some error checking code as with the other methods in this class. Just return 1 for now....
   return 1;  
 }
