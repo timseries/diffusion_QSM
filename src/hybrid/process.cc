@@ -707,7 +707,7 @@ bool Process::FullPass() {
 // Forwards: Ax_b=Ax-b
 // Backwards: AtAx_b=A'(Ax-b)
 // Calls Mult version of this method, which just does  a multiply when no addend is specified.
-  void Process::MultAdd(Real* result_fidelity, Real* result_reguliarizer,
+  void Process::MultAdd(Real* result_fidelity, Real* result_regularizer,
                       Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
                       Real* addend, bool dir) {
 
@@ -786,7 +786,7 @@ bool Process::FullPass() {
     cl_profile(P->cl, &P->profile1);
 #else //assume we're using CPU on a bluegene or PC
     memset(result_fidelity, 0, (P->dN) * sizeof(Real));
-    memset(result_reguliarizer, 0, (P->dN) * sizeof(Real));
+    memset(result_regularizer, 0, (P->dN) * sizeof(Real));
     int index1=0;
     int index2=0;
 #ifdef USE_OPENMP
@@ -807,7 +807,9 @@ bool Process::FullPass() {
 #endif
 #pragma omp for
     for (o = 0; o < dspec.nFG; o++) {
-      if (P->x[o]) {
+      if (rank==0) printroot("gets here1");
+      if (multiplicand_fidelity[o] and dir) {
+        if (rank==0) printroot("gets here2");
         
         oz = FGindices[o] / dspec.zoffset;
         oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
@@ -864,7 +866,7 @@ bool Process::FullPass() {
             //but it is cleaner, using pre-calculated single precision constants also slightly faster
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {
-              result_reguliarizer[index2] += Lfactors[_rx + _ry + _rz] * 
+              result_regularizer[index2] += Lfactors[_rx + _ry + _rz] * 
                   multiplicand_regularizer[index1];
             }
           }

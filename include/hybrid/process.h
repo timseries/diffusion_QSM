@@ -55,7 +55,6 @@ class Process {
   inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
                       Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
                       Real* addend, bool dir);
-  Real Mult();
   bool WriteOut();
   bool CleanUp();
   models model;
