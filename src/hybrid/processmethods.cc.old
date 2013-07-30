@@ -1,0 +1,151 @@
+void Process::LWIterate(Real* LHS, Real* RHS, int dir, Real* LapLHS, Real* LapRHS) {
+//Outer loop
+for (int o = 0; o < P->dspec.nFG; o++) {
+  if (dir < 0 && !P->x[o]) continue;  //Skip zero
+
+  int oz = P->FGindices[o] / P->dspec.zoffset;
+  int oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
+  int ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
+
+  int pz0 = P->dspec.start / P->dspec.zoffset;
+  int py0 = (P->dspec.start - pz0 * P->dspec.zoffset) / P->dspec.yoffset;
+  int px0 = P->dspec.start - py0 * P->dspec.yoffset - pz0 * P->dspec.zoffset - 1;      
+#if 1
+  int px = px0, py = py0, pz = pz0;
+  int ry = py0 - oy;
+  int rz = pz0 - oz;
+  //(Removed(OK)int roffset = (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset;
+#endif
+
+  //Inner loop
+  for (int p = P->dspec.start; p < P->dspec.end; p++) {
+#if 1
+    px++;
+    if (px == P->dspec.size[0]) {
+      px = 0;
+      py++;
+      if (py == P->dspec.size[1]) {
+        py = 0;
+        pz++;
+        rz = pz - oz;
+      }
+      ry = py - oy;
+    }
+    int rx = px - ox;
+#else
+    //Directly calculating from index is nearly twice as slow (divisions)
+    //Implemented for testing as necessary for part of GPU calc
+    int R = P->dspec.size[1];
+    int C = P->dspec.size[0];
+    int RC = R * C;
+    int pz = p / RC;
+    int pzRC = pz*RC;
+    int py = (p - pzRC) / R;
+    int px = p - pzRC - py * R;
+
+    int rx = px - ox;
+    int ry = py - oy;
+    int rz = pz - oz;
+#endif
+
+    if (rx >= -kernel.halfsize && rx <= kernel.halfsize && ry >= -kernel.halfsize && ry <= kernel.halfsize && rz >= -kernel.halfsize && rz <= kernel.halfsize) {
+      // Linear system
+      int mix = kernel.modelmap.mask[P->FGindices[o]];
+      int oo = o;
+      int pp = p-P->dspec.start;
+      if (dir<0) {
+        oo = pp;
+        pp = o;
+      }
+
+      if (mix == -1) { // spherical kernel
+        LHS[oo] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * RHS[pp];
+      }
+      else if (P->PreCalcCylinders) {
+        LHS[oo] += P->cylColumns[mix*P->dN + p-P->dspec.start] * RHS[pp];
+      }
+      else if (rx == 0 && ry == 0 && rz == 0) {
+        LHS[oo] += kernel.ctr[mix] * RHS[pp];
+      }
+      else {
+        LHS[oo] += kernel.GetCyl(mix, rx, ry, rz) * RHS[pp];
+      }
+
+      // Laplacian
+      Laplacian(rx, ry, rz, LapLHS, LapRHS, oo, pp);
+    }
+  }
+}
+}
+void Process::Laplacian(int rx, int ry, int rz, Real* LHS, Real* RHS, int o, int p) {
+  static int dn = -1; //kernel.halfsize - 1;
+  static int dz = 0; //kernel.halfsize;
+  static int dp = 1; //kernel.halfsize + 1;
+  static Real D3_96 = 3.0/96.0;
+  static Real D10_96 = 10.0/96.0;
+
+  // Laplacian
+  if (rx == dn){
+    if (ry == dn) {
+      if (rz == dz)
+        LHS[o] += D3_96 * RHS[p];
+    }
+    else if (ry == dz) {
+      if (rz == dn)
+        LHS[o] += D3_96 * RHS[p];
+      else if (rz == dz)
+        LHS[o] += D10_96 * RHS[p];
+      else if (rz == dp)
+        LHS[o] += D3_96 * RHS[p];
+    }
+    else if (ry == dp) {
+      if (rz == dz)
+        LHS[o] += D3_96 * RHS[p];
+    }
+  }
+  else if (rx == dz) {
+    if (ry == dn) {
+      if (rz == dn)
+        LHS[o] += D3_96 * RHS[p];
+      else if (rz == dz)
+        LHS[o] += D10_96 * RHS[p];
+      else if (rz == dp)
+        LHS[o] += D3_96 * RHS[p];
+    }
+    else if (ry == dz) {
+      if (rz == dn)
+        LHS[o] += D10_96 * RHS[p];
+      else if (rz == dz)
+        LHS[o] -= RHS[p];
+      else if (rz == dp)
+        LHS[o] += D10_96 * RHS[p];
+    }
+    else if (ry == dp) {
+      if (rz == dn)
+        LHS[o] += D3_96 * RHS[p];
+      else if (rz == dz)
+        LHS[o] += D10_96 * RHS[p];
+      else if (rz == dp)
+        LHS[o] += D3_96 * RHS[p];
+    }
+    
+  }
+  else if (rx == dp) {
+    if (ry == dn) {
+      if (rz == dz)
+        LHS[o] += D3_96 * RHS[p];
+    }
+    else if (ry == dz) {
+      if (rz == dn)
+        LHS[o] += D3_96 * RHS[p];
+      else if (rz == dz)
+        LHS[o] += D10_96 * RHS[p];
+      else if (rz == dp)
+        LHS[o] += D3_96 * RHS[p];
+    }
+    else if (ry == dp) {
+      if (rz == dz)
+        LHS[o] += D3_96 * RHS[p];
+    }            
+  }
+}

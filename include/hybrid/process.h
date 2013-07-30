@@ -41,6 +41,7 @@
 #include "hybrid/problem.h"
 #include "hybrid/util.h"
 
+
 class Process {
  public:
   Process();
@@ -51,8 +52,10 @@ class Process {
   bool loadDeltaB();
   bool loadMask();
   bool FullPass();
-  void LWIterate(Real* LHS, Real* RHS, int dir, Real* LapLHS, Real* LapRHS);
-  void Laplacian(int rx, int ry, int rz, Real* LHS, Real* RHS, int o, int p);
+  inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
+                      Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
+                      Real* addend, bool dir);
+  Real Mult();
   bool WriteOut();
   bool CleanUp();
   models model;

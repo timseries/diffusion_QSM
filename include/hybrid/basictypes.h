@@ -55,6 +55,12 @@
 #define SIZEOF_CHAR 1
 #define LOADDATAVERSION 1
 
+#ifdef USE_OPENMP
+  #define OPENMP 1
+#else
+  #define OPENMP 0
+#endif
+
 //Macros
 //TODO(timseries): consider inlining these or including these or something else, as per google coding standards on preprocessor macros.
 
