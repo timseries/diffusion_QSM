@@ -735,7 +735,7 @@ bool Process::FullPass() {
   int rz = 0;
   int _rx = 0;
   int _ry = 0;
-  int = _rz = 0;
+  int _rz = 0;
   int mix = 0;
 
   int nthreads,chunk,tid;
@@ -789,17 +789,22 @@ bool Process::FullPass() {
     memset(result_reguliarizer, 0, (P->dN) * sizeof(Real));
     int index1=0;
     int index2=0;
+#ifdef USE_OPENMP
     if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
     if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+#endif
 #pragma omp parallel shared(nthreads,chunk,dir) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix,index1,index2) if (OPENMP)
     {
+#ifdef USE_OPENMP
       tid = omp_get_thread_num();
+
       if (tid == 0 && rank==0 && iteration==0)
       {
         nthreads = omp_get_num_threads();
         printf("Starting  A*x-b using %d threads\n",nthreads);
         printf("Initializing matrices...\n");
       }
+#endif
 #pragma omp for
     for (o = 0; o < dspec.nFG; o++) {
       if (P->x[o]) {
