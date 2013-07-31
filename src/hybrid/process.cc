@@ -348,13 +348,13 @@ bool Process::FullPass() {
 
   Real tau = 0.15, alpha = 0.75, beta = 0.25;
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
-  //  Real *cylColumns;
-  //  int *FGindices; // indices corresponding to foreground elements
+  Real *cylColumns;
+  int *FGindices; // indices corresponding to foreground elements
 
   Real *new_x;
 
-  //  int dStart, dEnd;
-  //  int dN;  
+  int dStart, dEnd;
+  int dN;  
   int recvcounts, displs;
 
   //stopping criteria
@@ -442,7 +442,7 @@ bool Process::FullPass() {
  
     MPI_File_read(fptr, &iteration, 1, MPI_INT, MPI_STATUS_IGNORE);
     MPI_File_read(fptr, P->x, dspec.nFG, MPI_Real, MPI_STATUS_IGNORE);
-
+    
     MPI_File_close(&fptr);
 
     iteration++;
@@ -541,7 +541,10 @@ bool Process::FullPass() {
     // Ax_b = A * x - b
     // Dx = D * x
     // Begin old fullpass process, Ax_b = A * x - b, Dx = D * x
-    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true);
+
+    //    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true);
+    if (rank==0) printroot("first element %f: ", P->x[0]);
+    MultAdd(true);
     // end old fullpass process, Ax_b = A * x - b, Dx = D * x
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
@@ -553,7 +556,8 @@ bool Process::FullPass() {
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
     // Begin old fullpass process, AtAx_b = A' * Ax_b, DtDx = D' * Dx
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
+    // MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
+    MultAdd(false);
     // End old fullpass process, AtAx_b = A' * Ax_b, DtDx = D' * Dx
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
@@ -707,18 +711,18 @@ bool Process::FullPass() {
 // Forwards: Ax_b=Ax-b
 // Backwards: AtAx_b=A'(Ax-b)
 // Calls Mult version of this method, which just does  a multiply when no addend is specified.
-  void Process::MultAdd(Real* result_fidelity, Real* result_regularizer,
-                      Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
-                      Real* addend, bool dir) {
+  // void Process::MultAdd(Real *result_fidelity, Real *result_regularizer,
+  //                     Real *multiplicand_fidelity,Real *multiplicand_regularizer, 
+  //                     Real *addend, bool dir) {
+void Process::MultAdd(bool dir) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
-  Real *cylColumns;
-  int *FGindices; // indices corresponding to foreground elements
+  //  Real *cylColumns;
+  //  int *FGindices; // indices corresponding to foreground elements
 
-  Real *new_x;
 
-  int dStart, dEnd;
-  int dN;  
+  //  int dStart, dEnd;
+  //  int dN;  
   int recvcounts, displs;
 
   //stopping criteria
@@ -785,8 +789,13 @@ bool Process::FullPass() {
     //Profile
     cl_profile(P->cl, &P->profile1);
 #else //assume we're using CPU on a bluegene or PC
-    memset(result_fidelity, 0, (P->dN) * sizeof(Real));
-    memset(result_regularizer, 0, (P->dN) * sizeof(Real));
+    if (dir) {
+        memset(P->Ax_b, 0, (P->dN) * sizeof(Real));
+        memset(P->Dx, 0, (P->dN) * sizeof(Real));
+      }else{
+        memset(P->AtAx_b, 0, (P->dN) * sizeof(Real));
+        memset(P->DtDx, 0, (P->dN) * sizeof(Real));
+    }
     int index1=0;
     int index2=0;
 #ifdef USE_OPENMP
@@ -807,8 +816,7 @@ bool Process::FullPass() {
 #endif
 #pragma omp for
     for (o = 0; o < dspec.nFG; o++) {
-      if (rank==0) printroot("gets here1");
-      if (multiplicand_fidelity[o] and dir) {
+      if (P->x[o] and dir) {
         if (rank==0) printroot("gets here2");
         
         oz = FGindices[o] / dspec.zoffset;
@@ -849,16 +857,38 @@ bool Process::FullPass() {
             // Linear system
             mix = kernel.modelmap.mask[FGindices[o]];
             if (mix == -1) { // spherical kernel
-              result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
+              if (dir) {
+                  P->Ax_b[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[index1];
+                } else {
+                  P->AtAx_b[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[index1];
+
+              }
+                
             }
             else if (P->PreCalcCylinders) {
-              result_fidelity[index2] += cylColumns[mix*dN + p-dStart] * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += cylColumns[mix*dN + p-dStart] * multiplicand_fidelity[index1];
+              if (dir) {
+                  P->Ax_b[index2] += cylColumns[mix*dN + p-dStart] * P->x[index1];
+                } else {
+                P->AtAx_b[index2] += cylColumns[mix*dN + p-dStart] * P->Ax_b[index1];
+              }
             }
             else if (rx == 0 && ry == 0 && rz == 0) {
-              result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
+              if (dir) {
+               P->Ax_b[index2] += kernel.ctr[mix] * P->x[index1];
+                } else {
+                P->AtAx_b[index2] += kernel.ctr[mix] * P->Ax_b[index1];
+              }
             }
             else {
-              result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
+              if (dir) {
+                  P->Ax_b[index2] += kernel.GetCyl(mix, rx, ry, rz) * P->x[index1];
+                }else{
+                P->AtAx_b[index2] += kernel.GetCyl(mix, rx, ry, rz) * P->Ax_b[index1];
+              }
             }
             
             //OK 7/13: Optimised Laplacian,
@@ -866,17 +896,23 @@ bool Process::FullPass() {
             //but it is cleaner, using pre-calculated single precision constants also slightly faster
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {
-              result_regularizer[index2] += Lfactors[_rx + _ry + _rz] * 
-                  multiplicand_regularizer[index1];
+              //              result_regularizer[index2] += Lfactors[_rx + _ry + _rz] *  multiplicand_regularizer[index1];
+              if (dir) {
+                  P->Dx[index2] += Lfactors[_rx + _ry + _rz] *  P->x[index1];
+                }else {
+                  P->DtDx[index2] += Lfactors[_rx + _ry + _rz] *  P->Dx[index1];
+              }
             }
           }
         }
       }
     }
-    if (addend != NULL){
+    //    if (addend != NULL){
+    if (dir){
  #pragma omp for
       for (p = 0; p < P->dN; p++) {
-        result_fidelity[p] -= addend[p];
+        //        result_fidelity[p] -= addend[p];l
+        P->Ax_b[p] -= deltab[p];
       }
     }//end omp parallel section
     }

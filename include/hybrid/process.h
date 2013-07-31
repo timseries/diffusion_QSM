@@ -52,9 +52,11 @@ class Process {
   bool loadDeltaB();
   bool loadMask();
   bool FullPass();
-  inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
-                      Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
-                      Real* addend, bool dir);
+  // inline void MultAdd(Real *result_fidelity, Real *result_reguliarizer,
+  //                     Real *multiplicand_fidelity,Real *multiplicand_regularizer, 
+  //                     Real *addend, bool dir);
+  void MultAdd(bool dir);
+
   bool WriteOut();
   bool CleanUp();
   models model;
