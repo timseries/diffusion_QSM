@@ -32,6 +32,10 @@ LDFLAGS += -fopenmp
 endif
 endif 
 
+ifdef debug
+CPPFLAGS +=  -Wall -Werror -g
+endif 
+
 ifdef bluegene
 CC = mpixlcxx_r
 CPPFLAGS += -qstrict
