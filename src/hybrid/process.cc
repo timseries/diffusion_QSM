@@ -71,11 +71,12 @@ Process::Process() {
   deltab = NULL;
   chi = NULL;
   filepath = NULL;
-  FGindices = NULL;
-  cylColumns = NULL;
-  dStart = 0;
-  dEnd = 0;
-  dN = 0;
+  P = NULL;
+  //  FGindices = NULL;
+  //  cylColumns = NULL;
+  //dStart = 0;
+  //kdEnd = 0;
+  //dN = 0;
 }
 Process::~Process() {}
 bool Process::Init(int argc, char** args) {
@@ -89,6 +90,9 @@ bool Process::Init(int argc, char** args) {
   myout.Init(arghandler, rank, size);
   // Load the data, mask, and model
   if (!loadDeltaB()) goto exitnow;
+  printroot("rank: %d",rank);
+  printroot("dspec start: %d\n", dspec.start);
+  printroot("dspec end: %d\n", dspec.end);
   myout.DistrArray(deltab, dspec.end - dspec.start, 3, dspec.size, "deltab");
   if (!loadMask()) goto exitnow;
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
@@ -348,13 +352,13 @@ bool Process::FullPass() {
 
   Real tau = 0.15, alpha = 0.75, beta = 0.25;
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
-  //  Real *cylColumns;
-  //  int *FGindices; // indices corresponding to foreground elements
+  Real *cylColumns;
+  int *FGindices; // indices corresponding to foreground elements
 
   Real *new_x;
 
-  //  int dStart, dEnd;
-  //  int dN;  
+  int dStart, dEnd;
+  int dN;  
   int recvcounts, displs;
 
   //stopping criteria
@@ -418,7 +422,8 @@ bool Process::FullPass() {
   //==================================================================================================================
   // Create foreground indices array and initialise x
   if (rank==0) printroot("   Creating foreground indices array ...\n");
-  FGindices = (int*) calloc(dspec.N, sizeof(int));
+  //FGindices = (int*) calloc(dspec.N, sizeof(int));
+  FGindices = P->FGindices;
   o = 0;
   for (p = 0; p < dspec.N; p++) {
     if (mask[p]) {
@@ -442,7 +447,7 @@ bool Process::FullPass() {
  
     MPI_File_read(fptr, &iteration, 1, MPI_INT, MPI_STATUS_IGNORE);
     MPI_File_read(fptr, P->x, dspec.nFG, MPI_Real, MPI_STATUS_IGNORE);
-
+    
     MPI_File_close(&fptr);
 
     iteration++;
@@ -541,7 +546,222 @@ bool Process::FullPass() {
     // Ax_b = A * x - b
     // Dx = D * x
     // Begin old fullpass process, Ax_b = A * x - b, Dx = D * x
-    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true);
+// #ifdef USE_OPENCL
+//     P->profile1.kern_time = 0;
+//     cl_size(P->cl, P->dN, 0, P->threads, rank);  //Resize
+//     if (first)
+//     {
+//       // Write initial x buffer
+//       cl_enqueue_write(P->cl, P->cl_x, P->cl_size_fg, P->x);
+//       first = false;
+//     }
+//     cl_set_arg(cl, P->kernel_iterate1, 13, P->dspec.start);
+//     cl_set_arg(cl, P->kernel_iterate1, 14, P->dspec.end);
+//     // Perform the operations
+//     cl_set_arg(cl, P->kernel_zero, 4, P->dN);
+//     cl_enqueue_kernel(P->cl, P->kernel_zero, NULL);
+//     //Only have x values on 2nd and subsequent iterations
+//     if (iteration == 0)
+//     {
+//       //Cache values for iterate1
+//       cl_enqueue_kernel(P->cl, P->kernel_cache, &P->profile1.event);   //Profile this kernel
+//     }
+
+//     else
+//     {
+//       //Split the job up if requested
+//       int BLOCK = (dspec.nFG / P->divide + 0.5);
+    
+//       //printf("iterate1 0 ");
+//       for (int start=0; start<dspec.nFG; start += BLOCK)
+//       {
+//         int end = start + BLOCK;
+//         if (end > dspec.nFG) end = dspec.nFG;
+//         //printf("%d ", end);
+//         cl_set_arg(cl, P->kernel_iterate1, 15, start);
+//         cl_set_arg(cl, P->kernel_iterate1, 16, end);
+//         cl_enqueue_kernel(P->cl, P->kernel_iterate1, &P->profile1.event);   //Profile this kernel
+//       }
+//       //printf("\n");
+//     }
+//     cl_set_arg(cl, P->kernel_delta_b, 2, P->dspec.start);
+//     cl_set_arg(cl, P->kernel_delta_b, 3, P->dspec.end);
+//     cl_enqueue_kernel(P->cl, P->kernel_delta_b, NULL);
+//     cl_run(P->cl);
+//     //Profile
+//     cl_profile(P->cl, &P->profile1);
+// #elif defined(USE_OPENMP)
+//     // if (omp_get_dynamic()) {
+//     //   printroot ("dynamic threads enabled in OPENMP\n");
+//     // }
+
+//     memset(P->Ax_b, 0, (P->dN) * sizeof(Real));
+//     memset(P->Dx, 0, (P->dN) * sizeof(Real));
+//     if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+//     if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+//     // TODO(timseries): can't scope these class data members dspec, kernel, P, and rank, which is bad omp pracitce..., find a better solution!
+
+// #pragma omp parallel shared(nthreads,chunk) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix)
+//     {
+//       tid = omp_get_thread_num();
+//       if (tid == 0 && rank==0 && iteration==0)
+//       {
+//         nthreads = omp_get_num_threads();
+//         printf("Starting  A*x-b using %d threads\n",nthreads);
+//         printf("Initializing matrices...\n");
+//       }
+// #pragma omp for
+//     for (o = 0; o < dspec.nFG; o++) {
+//       if (P->x[o]) {
+//         oz = FGindices[o] / dspec.zoffset;
+//         oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+//         ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+
+//         // TODO(timseries): find out why these were missing from OK's implementation.
+//         pz = dStart / dspec.zoffset;
+//         py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+//         px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;			    
+
+//         ry = py - oy;
+//         rz = pz - oz;
+
+//         _rx = abs(rx);
+//         _ry = abs(ry);
+//         _rz = abs(rz);
+        
+//         for (p = dStart; p < dEnd; p++) {
+//           px++;
+//           if (px == dspec.size[0]) {
+//             px = 0;
+//             py++;
+//             if (py == dspec.size[1]) {
+//               py = 0;
+//               pz++;
+//               rz = pz - oz;
+//               _rz = abs(rz);
+//             }
+//             ry = py - oy;
+//             _ry = abs(ry);
+//           }        
+//           rx = px - ox;
+//           _rx = abs(rx);
+          
+//           if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
+//             // Linear system
+//             mix = kernel.modelmap.mask[FGindices[o]];
+//             if (mix == -1) { // spherical kernel
+//               P->Ax_b[p - dStart] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[o];
+//             }
+//             else if (P->PreCalcCylinders) {
+//               P->Ax_b[p - dStart] += cylColumns[mix*dN + p-dStart] * P->x[o];
+//             }
+//             else if (rx == 0 && ry == 0 && rz == 0) {
+//               P->Ax_b[p - dStart] += kernel.ctr[mix] * P->x[o];
+//             }
+//             else {
+//               P->Ax_b[p - dStart] += kernel.GetCyl(mix, rx, ry, rz) * P->x[o];
+//             }
+            
+//             //OK 7/13: Optimised Laplacian,
+//             //This is not faster on CPU (as it is on GPU due to reduced branching)
+//             //but it is cleaner, using pre-calculated single precision constants also slightly faster
+//             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
+//             {
+//               P->Dx[p-dStart] += Lfactors[_rx + _ry + _rz] * P->x[o];
+//             }
+//           }
+//         }
+//       }
+//     }
+// #pragma omp for
+//     for (p = 0; p < P->dN; p++) {
+//       if ((p==8) and (rank==0)) {
+//           printroot("p: %d\n",p);
+//           printroot("deltab[p]: %0.3e\n",deltab[p]);
+//         }
+
+//       P->Ax_b[p] -= deltab[p];
+//     }
+// }//end omp parallel section
+// #else
+//     memset(P->Ax_b, 0, (P->dN) * sizeof(Real));
+//     memset(P->Dx, 0, (P->dN) * sizeof(Real));
+
+//     for (o = 0; o < dspec.nFG; o++) {
+//       if (P->x[o]) {
+        
+//         oz = FGindices[o] / dspec.zoffset;
+//         oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+//         ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+
+//         // TODO(timseries): find out why these were missing from OK's implementation.
+//         pz = dStart / dspec.zoffset;
+//         py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+//         px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;			    
+
+//         ry = py - oy;
+//         rz = pz - oz;
+
+//         _rx = abs(rx);
+//         _ry = abs(ry);
+//         _rz = abs(rz);
+        
+//         for (p = dStart; p < dEnd; p++) {
+//           px++;
+//           if (px == dspec.size[0]) {
+//             px = 0;
+//             py++;
+//             if (py == dspec.size[1]) {
+//               py = 0;
+//               pz++;
+//               rz = pz - oz;
+//               _rz = abs(rz);
+//             }
+//             ry = py - oy;
+//             _ry = abs(ry);
+//           }        
+//           rx = px - ox;
+//           _rx = abs(rx);
+          
+//           if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
+//             // Linear system
+//             mix = kernel.modelmap.mask[FGindices[o]];
+//             if (mix == -1) { // spherical kernel
+//               P->Ax_b[p - dStart] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[o];
+//             }
+//             else if (P->PreCalcCylinders) {
+//               P->Ax_b[p - dStart] += cylColumns[mix*dN + p-dStart] * P->x[o];
+//             }
+//             else if (rx == 0 && ry == 0 && rz == 0) {
+//               P->Ax_b[p - dStart] += kernel.ctr[mix] * P->x[o];
+//             }
+//             else {
+//               P->Ax_b[p - dStart] += kernel.GetCyl(mix, rx, ry, rz) * P->x[o];
+//             }
+            
+//             //OK 7/13: Optimised Laplacian,
+//             //This is not faster on CPU (as it is on GPU due to reduced branching)
+//             //but it is cleaner, using pre-calculated single precision constants also slightly faster
+//             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
+//             {
+//               P->Dx[p-dStart] += Lfactors[_rx + _ry + _rz] * P->x[o];
+//             }
+//           }
+//         }
+//       }
+//     }
+//     for (p = 0; p < P->dN; p++) {
+//       P->Ax_b[p] -= deltab[p];
+//     }
+// #endif
+
+    //MultAdd(*(P->Ax_b),*(P->Dx),*(P->x),*(P->x),deltab,true);
+    MultAdd(P,true);
+
+          printroot("after first multadd....\n",p);
+          printroot("P->Ax_b[8]: %0.3e\n",P->Ax_b[8]);
+                    
+
     // end old fullpass process, Ax_b = A * x - b, Dx = D * x
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
@@ -553,7 +773,194 @@ bool Process::FullPass() {
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
     // Begin old fullpass process, AtAx_b = A' * Ax_b, DtDx = D' * Dx
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
+    //MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
+    MultAdd(P,false);
+//  #ifdef USE_OPENCL
+//     P->profile2.kern_time = 0;
+//     cl_size(P->cl, P->dspec.nFG, 0, P->threads, rank);  //Resize
+//     //Split the job up if requested
+//     int BLOCK = (dN / P->divide + 0.5);
+//     //printf("iterate2 0 ");
+//     for (int start=dStart; start<P->dEnd; start += BLOCK)
+//     {
+//       int end = start + BLOCK;
+//       if (end > dEnd) end = dEnd;
+//       //printf("%d ", end);
+//       cl_set_arg(cl, P->kernel_iterate2, 15, start);
+//       cl_set_arg(cl, P->kernel_iterate2, 16, end);
+//       cl_set_arg(cl, P->kernel_iterate2, 17, dStart);
+//       // Perform the operations
+//       cl_enqueue_kernel(P->cl, P->kernel_iterate2, &P->profile2.event);   //Profile this kernel
+//     }
+//     //printf("\n");
+//     // Read the results back
+//     cl_enqueue_read(P->cl, P->cl_AtAx_b, P->cl_size_fg, P->AtAx_b);
+//     cl_enqueue_read(P->cl, P->cl_DtDx, P->cl_size_fg, P->DtDx);
+//     //Run queued operations
+//     cl_run(P->cl);
+//     //Profile
+//     cl_profile(P->cl, &P->profile2);
+// #elif defined(USE_OPENMP)
+//     // if (omp_get_dynamic()) {
+//     //   printroot ("dynamic threads enabled in OPENMP\n");
+//     // }
+
+//     memset(P->AtAx_b, 0, P->dspec.nFG*sizeof(Real));
+//     memset(P->DtDx, 0, P->dspec.nFG*sizeof(Real));
+//     ///if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+//     //if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+//     // TODO(timseries): can't scope these class data members dspec, kernel, P, and rank, which is bad omp pracitce..., find a better solution!
+//     //    int chunk = 10;
+//     //    int tid, nthreads;
+//     //    int o,p,ox,oy,oz,px,py,pz,rx,ry,rz;
+
+// #pragma omp parallel shared(nthreads,chunk) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix) if (OPENMP)
+//   {
+//       tid = omp_get_thread_num();
+//       if (tid == 0 && rank==0 && iteration==0)
+//       {
+//         nthreads = omp_get_num_threads();
+//         printf("Starting  AtAx_b using %d threads\n",nthreads);
+//         printf("Initializing matrices...\n");
+//       }
+// #pragma omp for
+//     for (o = 0; o < dspec.nFG; o++) {
+//       oz = FGindices[o] / dspec.zoffset;
+//       oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+//       ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+      
+//       pz = dStart / dspec.zoffset;
+//       py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+//       px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;      
+      
+//       ry = py - oy;
+//       rz = pz - oz;
+
+//       _rx = abs(rx);
+//       _ry = abs(ry);
+//       _rz = abs(rz);
+
+      
+//       //roffset = (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset;
+      
+//       for (p = dStart; p < dEnd; p++) {
+        
+//         px++;
+//         if (px == dspec.size[0]) {
+//           px = 0;
+//           py++;
+//           if (py == dspec.size[1]) {
+//             py = 0;
+//             pz++;
+//             rz = pz - oz;
+//             _rz = abs(rz);
+//           }
+//           ry = py - oy;
+//           _ry = abs(ry);
+//         }        
+//         rx = px - ox;
+//           _rx = abs(rx);
+     
+//         if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
+     
+//           // Linear system
+//           mix = kernel.modelmap.mask[FGindices[o]];
+
+//           if (mix == -1) { // spherical kernel
+//             P->AtAx_b[o] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->Ax_b[p - dStart];
+//           }
+//           else if (P->PreCalcCylinders) {
+//             P->AtAx_b[o] += cylColumns[mix*dN + p-dStart] * P->Ax_b[p - dStart];
+//           }
+//           else if (rx == 0 && ry == 0 && rz == 0) {
+//             P->AtAx_b[o] += kernel.ctr[mix] * P->Ax_b[p - dStart];
+//           }
+//           else {
+//             P->AtAx_b[o] += kernel.GetCyl(mix, rx, ry, rz) * P->Ax_b[p - dStart];
+//           }
+  
+//           //OK 7/13: Optimised Laplacian,
+//           //This is not faster on CPU (as it is on GPU due to reduced branching)
+//           //but it is cleaner, using pre-calculated single precision constants also slightly faster
+//           if (_rx <= 1 && _ry <= 1 && _rz <= 1)
+//           {
+//             P->DtDx[o] += Lfactors[_rx + _ry + _rz] * P->Dx[p-dStart];
+//           }
+//         }
+//       }
+//     }
+//   } //end omp parallel section
+// #else
+//     memset(P->AtAx_b, 0, P->dspec.nFG*sizeof(Real));
+//     memset(P->DtDx, 0, P->dspec.nFG*sizeof(Real));
+//     //LWIterate(P->AtAx_b, P->Ax_b, 1, P->DtDx, P->Dx);
+//     for (o = 0; o < dspec.nFG; o++) {
+//       oz = FGindices[o] / dspec.zoffset;
+//       oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+//       ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+      
+//       pz = dStart / dspec.zoffset;
+//       py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
+//       px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;      
+      
+//       ry = py - oy;
+//       rz = pz - oz;
+
+//       int _rx = abs(rx);
+//       int _ry = abs(ry);
+//       int _rz = abs(rz);
+
+      
+//       //roffset = (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset;
+      
+//       for (p = dStart; p < dEnd; p++) {
+        
+//         px++;
+//         if (px == dspec.size[0]) {
+//           px = 0;
+//           py++;
+//           if (py == dspec.size[1]) {
+//             py = 0;
+//             pz++;
+//             rz = pz - oz;
+//             _rz = abs(rz);
+//           }
+//           ry = py - oy;
+//           _ry = abs(ry);
+//         }        
+//         rx = px - ox;
+//           _rx = abs(rx);
+     
+//         if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
+     
+//           // Linear system
+//           int mix = kernel.modelmap.mask[FGindices[o]];
+
+//           if (mix == -1) { // spherical kernel
+//             P->AtAx_b[o] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->Ax_b[p - dStart];
+//           }
+//           else if (P->PreCalcCylinders) {
+//             P->AtAx_b[o] += cylColumns[mix*dN + p-dStart] * P->Ax_b[p - dStart];
+//           }
+//           else if (rx == 0 && ry == 0 && rz == 0) {
+//             P->AtAx_b[o] += kernel.ctr[mix] * P->Ax_b[p - dStart];
+//           }
+//           else {
+//             P->AtAx_b[o] += kernel.GetCyl(mix, rx, ry, rz) * P->Ax_b[p - dStart];
+//           }
+  
+//           //OK 7/13: Optimised Laplacian,
+//           //This is not faster on CPU (as it is on GPU due to reduced branching)
+//           //but it is cleaner, using pre-calculated single precision constants also slightly faster
+//           if (_rx <= 1 && _ry <= 1 && _rz <= 1)
+//           {
+//             P->DtDx[o] += Lfactors[_rx + _ry + _rz] * P->Dx[p-dStart];
+//           }
+//         }
+//       }
+//     }
+// #endif
+
     // End old fullpass process, AtAx_b = A' * Ax_b, DtDx = D' * Dx
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
@@ -707,18 +1114,18 @@ bool Process::FullPass() {
 // Forwards: Ax_b=Ax-b
 // Backwards: AtAx_b=A'(Ax-b)
 // Calls Mult version of this method, which just does  a multiply when no addend is specified.
-  void Process::MultAdd(Real* result_fidelity, Real* result_reguliarizer,
-                      Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
-                      Real* addend, bool dir) {
+  // void Process::MultAdd(Real result_fidelity, Real result_regularizer,
+  //                     Real multiplicand_fidelity,Real multiplicand_regularizer, 
+  //                     Real addend, bool dir) {
+void Process::MultAdd(Problem *P,bool dir) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
-  Real *cylColumns;
-  int *FGindices; // indices corresponding to foreground elements
+  //  Real *cylColumns;
+  //  int *FGindices; // indices corresponding to foreground elements
 
-  Real *new_x;
 
-  int dStart, dEnd;
-  int dN;  
+  //  int dStart, dEnd;
+  //  int dN;  
   int recvcounts, displs;
 
   //stopping criteria
@@ -785,8 +1192,13 @@ bool Process::FullPass() {
     //Profile
     cl_profile(P->cl, &P->profile1);
 #else //assume we're using CPU on a bluegene or PC
-    memset(result_fidelity, 0, (P->dN) * sizeof(Real));
-    memset(result_reguliarizer, 0, (P->dN) * sizeof(Real));
+    if (dir) {
+        memset(P->Ax_b, 0, (P->dN) * sizeof(Real));
+        memset(P->Dx, 0, (P->dN) * sizeof(Real));
+      }else{
+        memset(P->AtAx_b, 0, (P->dN) * sizeof(Real));
+        memset(P->DtDx, 0, (P->dN) * sizeof(Real));
+    }
     int index1=0;
     int index2=0;
 #ifdef USE_OPENMP
@@ -806,16 +1218,17 @@ bool Process::FullPass() {
       }
 #endif
 #pragma omp for
-    for (o = 0; o < dspec.nFG; o++) {
-      if (P->x[o]) {
+    for (o = 0; o < P->dspec.nFG; o++) {
+      if ((P->x[o] and dir) or (!dir)) {
+        //if (rank==0) printroot("gets here2");
         
-        oz = FGindices[o] / dspec.zoffset;
-        oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
-        ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+        oz = P->FGindices[o] / P->dspec.zoffset;
+        oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
+        ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
 
-        pz = dStart / dspec.zoffset;
-        py = (dStart - pz * dspec.zoffset) / dspec.yoffset;
-        px = dStart - py * dspec.yoffset - pz * dspec.zoffset - 1;			    
+        pz = P->dspec.start / P->dspec.zoffset;
+        py = (P->dspec.start - pz * dspec.zoffset) / P->dspec.yoffset;
+        px = P->dStart - py * P->dspec.yoffset - pz * P->dspec.zoffset - 1;			    
 
         ry = py - oy;
         rz = pz - oz;
@@ -824,14 +1237,14 @@ bool Process::FullPass() {
         _ry = abs(ry);
         _rz = abs(rz);
         
-        for (p = dStart; p < dEnd; p++) {
-          index1 = dir ? o : p - dStart;
-          index2 = dir ? p - dStart : o;
+        for (p = P->dspec.start; p < P->dspec.end; p++) {
+          index1 = dir ? o : p - P->dspec.start;
+          index2 = dir ? p - P->dspec.start : o;
           px++;
-          if (px == dspec.size[0]) {
+          if (px == P->dspec.size[0]) {
             px = 0;
             py++;
-            if (py == dspec.size[1]) {
+            if (py == P->dspec.size[1]) {
               py = 0;
               pz++;
               rz = pz - oz;
@@ -845,18 +1258,40 @@ bool Process::FullPass() {
           
           if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
             // Linear system
-            mix = kernel.modelmap.mask[FGindices[o]];
+            mix = kernel.modelmap.mask[P->FGindices[o]];
             if (mix == -1) { // spherical kernel
-              result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
+              if (dir) {
+                  P->Ax_b[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[index1];
+                } else {
+                  P->AtAx_b[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * P->x[index1];
+
+              }
+                
             }
             else if (P->PreCalcCylinders) {
-              result_fidelity[index2] += cylColumns[mix*dN + p-dStart] * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += cylColumns[mix*dN + p-dStart] * multiplicand_fidelity[index1];
+              if (dir) {
+                  P->Ax_b[index2] += P->cylColumns[mix*P->dN + p-P->dspec.start] * P->x[index1];
+                } else {
+                P->AtAx_b[index2] += P->cylColumns[mix*P->dN + p-P->dspec.start] * P->Ax_b[index1];
+              }
             }
             else if (rx == 0 && ry == 0 && rz == 0) {
-              result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
+              if (dir) {
+               P->Ax_b[index2] += kernel.ctr[mix] * P->x[index1];
+                } else {
+                P->AtAx_b[index2] += kernel.ctr[mix] * P->Ax_b[index1];
+              }
             }
             else {
-              result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
+              //              result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
+              if (dir) {
+                  P->Ax_b[index2] += kernel.GetCyl(mix, rx, ry, rz) * P->x[index1];
+                }else{
+                P->AtAx_b[index2] += kernel.GetCyl(mix, rx, ry, rz) * P->Ax_b[index1];
+              }
             }
             
             //OK 7/13: Optimised Laplacian,
@@ -864,17 +1299,27 @@ bool Process::FullPass() {
             //but it is cleaner, using pre-calculated single precision constants also slightly faster
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {
-              result_reguliarizer[index2] += Lfactors[_rx + _ry + _rz] * 
-                  multiplicand_regularizer[index1];
+              //              result_regularizer[index2] += Lfactors[_rx + _ry + _rz] *  multiplicand_regularizer[index1];
+              if (dir) {
+                  P->Dx[index2] += Lfactors[_rx + _ry + _rz] *  P->x[index1];
+                }else {
+                  P->DtDx[index2] += Lfactors[_rx + _ry + _rz] *  P->Dx[index1];
+              }
             }
           }
         }
       }
     }
-    if (addend != NULL){
+    //    if (addend != NULL){
+    if (dir){
  #pragma omp for
       for (p = 0; p < P->dN; p++) {
-        result_fidelity[p] -= addend[p];
+      if ((p==8) and (rank==0)) {
+          printroot("p: %d\n",p);
+          printroot("deltab[p]: %0.3e\n",deltab[p]);
+        }
+        //        result_fidelity[p] -= addend[p];
+        P->Ax_b[p] -= deltab[p];
       }
     }//end omp parallel section
     }

@@ -52,10 +52,11 @@ class Process {
   bool loadDeltaB();
   bool loadMask();
   bool FullPass();
-  inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
-                      Real* multiplicand_fidelity,Real* multiplicand_regularizer, 
-                      Real* addend, bool dir);
-  Real Mult();
+  // void MultAdd(Real result_fidelity, Real result_reguliarizer,
+  //                     Real multiplicand_fidelity,Real multiplicand_regularizer, 
+  //                     Real addend, bool dir);
+  inline void MultAdd(Problem *P,bool dir);
+
   bool WriteOut();
   bool CleanUp();
   models model;
@@ -64,10 +65,10 @@ class Process {
   DataSpec dspec;
   Problem *P;
 
-  Real *cylColumns;
-  int *FGindices; // indices corresponding to foreground elements
-  int dStart, dEnd;
-  int dN;  
+  //  Real *cylColumns;
+  //  int *FGindices; // indices corresponding to foreground elements
+  //  int dStart, dEnd;
+  //  int dN;  
 
   Real threshold;
   Real *deltab;
