@@ -44,14 +44,11 @@
 
 Problem::Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real beta) : dspec(dspec) {
   // Get start and end of local portion of Deltab array
-  dStart = dspec.start;
-  dEnd = dspec.end;
-  dN = dEnd - dStart;
     
   //==================================================================================================================
   // Create Ax_b array
   printroot("   Creating Ax_b array ...\n");
-  Ax_b = (Real*) calloc(dN, sizeof(Real));
+  Ax_b = (Real*) calloc(dspec.range, sizeof(Real));
     
   //==================================================================================================================
   // Create AtAx_b array
@@ -61,7 +58,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real bet
   //==================================================================================================================
   // Create Dx array
   printroot("   Creating Dx array ...\n");
-  Dx = (Real*) calloc(dN, sizeof(Real));
+  Dx = (Real*) calloc(dspec.range, sizeof(Real));
     
   //==================================================================================================================
   // Create DtDx array
@@ -80,7 +77,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real bet
 
   //==================================================================================================================
   // Create cylColumns array
-  double M = (double)kernel.modelmap.ncyls * dN * sizeof(Real);
+  double M = (double)kernel.modelmap.ncyls * dspec.range * sizeof(Real);
   cylColumns = NULL;
   //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
   if (1)  //Force cylinder calc on the fly for testing
@@ -150,7 +147,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real bet
   //cl_checklocalmem(cl, cl->nthreads * sizeof(Real) * (nlaw ? 7 : 4));
 
   // Allocate GPU global memory buffers
-  cl_size_n = sizeof(Real) * dN;
+  cl_size_n = sizeof(Real) * dspec.range;
   cl_size_fg = sizeof(Real) * dspec.nFG;
   cl_size_cyl = sizeof(Real) * kernel.modelmap.ncyls;
   cl_Ax_b = cl_new_buffer(cl, CL_MEM_READ_WRITE, cl_size_n);

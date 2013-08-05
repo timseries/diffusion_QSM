@@ -9,7 +9,7 @@ LIBS		=
 
 ifdef hybrid
 SOURCEDIR     	= src/hybrid
-SOURCES		= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/modelmap.cc
+SOURCES		= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/modelmap.cc $(SOURCEDIR)/dataspec.cc
 SOURCES		+= $(SOURCEDIR)/output.cc $(SOURCEDIR)/util.cc
 SOURCES		+= $(SOURCEDIR)/kernel.cc $(SOURCEDIR)/problem.cc
 SOURCES		+= $(SOURCEDIR)/process.cc $(SOURCEDIR)/hybrid_main.cc

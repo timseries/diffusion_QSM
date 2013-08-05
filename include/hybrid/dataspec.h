@@ -31,12 +31,16 @@
 */
 
 #ifndef INCLUDE_DATASPEC_H_
-  #define INCLUDE_DATASPEC_H_
+#define INCLUDE_DATASPEC_H_
+
+#include "hybrid/basictypes.h"
 
 class DataSpec {
  public:
-  DataSpec(){}
-  virtual ~DataSpec(){}
+  DataSpec();
+  virtual ~DataSpec();
+
+  void Create(double* buf,int rank, int size);
   int size[3];  // data size
   int N;
   int yoffset;
@@ -48,5 +52,6 @@ class DataSpec {
   int nFG;
   unsigned start;
   unsigned end;
+  unsigned range;
 };
 #endif  // INCLUDE_DATASPEC_H_

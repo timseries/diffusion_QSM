@@ -41,7 +41,7 @@ class ModelMap {
  public:
   ModelMap();
   virtual ~ModelMap();
-  bool Process(DataSpec &dspec, const ArgHandler &arghandler);
+  bool Create(DataSpec &dspec, const ArgHandler &arghandler);
   void close(void);
   int *mask;
   Real *x;

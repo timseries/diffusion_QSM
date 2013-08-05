@@ -45,8 +45,6 @@ class Problem {
   Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real beta);
   virtual ~Problem();
   DataSpec &dspec;
-  int dStart, dEnd;
-  int dN;  
 
   Real *Ax_b;  
   Real *AtAx_b;

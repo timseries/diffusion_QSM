@@ -55,7 +55,7 @@ ModelMap::ModelMap() {
 }
 ModelMap::~ModelMap() {}
 // TODO(timseries): The sizeof(type)'s would be best replaced with a constant...
-bool ModelMap::Process(DataSpec &dspec, const ArgHandler &arghandler) {
+bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
   int err;
   char *filepath;
   MPI_File fptr;
