@@ -522,7 +522,7 @@ bool Process::FullPass() {
 
     // Ax_b = A * x - b
     // Dx = D * x
-    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true);
+    MultAdd(P,P->Ax_b,P->Dx,P->x,P->x,deltab,true);
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
     tmins = floor(tsecs/60);
@@ -532,7 +532,7 @@ bool Process::FullPass() {
 
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
+    MultAdd(P,P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
           printroot("after second  multadd....\n",p);
           printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
@@ -672,7 +672,7 @@ bool Process::FullPass() {
   //                     Real multiplicand_fidelity,Real multiplicand_regularizer, 
   //                     Real addend, bool dir) {
 //void Process::MultAdd(Problem *P,bool dir) {
-void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir) {
+void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   int recvcounts, displs;

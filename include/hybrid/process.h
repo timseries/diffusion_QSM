@@ -52,7 +52,7 @@ class Process {
   bool loadDeltaB();
   bool loadMask();
   bool FullPass();
-  inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
+  inline void MultAdd(Problem* P, Real* result_fidelity, Real* result_reguliarizer,
                       Real* multiplicand_fidelity, Real* multiplicand_regularizer, 
                       Real* addend, bool dir);
   //  inline void MultAdd(Problem *P, bool dir);
