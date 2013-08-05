@@ -2,7 +2,7 @@
 #use make bluegene for normal compilation
 #use make bluegene profile to include profiling
 CC		= $(PREP) mpicxx
-CPPFLAGS	= -c -O3
+CPPFLAGS	= -c -O3 -qinline
 CPPFLAGS 	+= -Iinclude
 LDFLAGS		=
 LIBS		= 
