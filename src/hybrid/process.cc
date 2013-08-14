@@ -526,7 +526,7 @@ bool Process::FullPass() {
       px = p - py * dspec.yoffset - pz * dspec.zoffset;
       
       for (o = 0; o < dspec.nFG; o++) {
-               // mix = kernel.modelmap.mask[FGindices[o]];
+        //        mix = kernel.modelmap.mask[FGindices[o]];
                mix = kernel.modelmap.mask[FGindicesUniform[o]];
         if (mix != -1) {
           // oz = FGindices[o] / dspec.zoffset;
@@ -601,6 +601,8 @@ bool Process::FullPass() {
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,first,iteration);
+          printroot("after second  multadd....\n",p);
+          printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
@@ -701,7 +703,6 @@ bool Process::FullPass() {
 
   for (o = 0; o < dspec.nFG; o++) {
     chi[FGindicesUniform[o]] = P->x[o];
-    // chi[FGindices[o]] = P->x[o];
   }
 
     wall_time = MPI_Wtime() - wall_time;
