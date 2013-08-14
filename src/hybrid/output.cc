@@ -133,26 +133,26 @@ void Output::LocalArray(int onproc, Real* array, int ndims, int* dims, const cha
 
       arraynamelength = strlen(arrayname);
 
-      MPI_Send(&ndims,			1,					MPI_INT,		0, 0, MPI_COMM_WORLD);
-      MPI_Send(dims,				ndims,				MPI_INT,		0, 1, MPI_COMM_WORLD);
-      MPI_Send(&arraynamelength,	1,					MPI_INT,		0, 2, MPI_COMM_WORLD);
-      MPI_Send((char*)arrayname,	arraynamelength,	MPI_CHAR,		0, 3, MPI_COMM_WORLD);
-      MPI_Send(array,				n,					MPI_Real,	0, 4, MPI_COMM_WORLD);
+      MPI_Send(&ndims,1,MPI_INT,0,0,MPI_COMM_WORLD);
+      MPI_Send(dims,ndims,MPI_INT,0,1,MPI_COMM_WORLD);
+      MPI_Send(&arraynamelength,1,MPI_INT,0,2,MPI_COMM_WORLD);
+      MPI_Send((char*)arrayname,arraynamelength,MPI_CHAR,0,3,MPI_COMM_WORLD);
+      MPI_Send(array,n,MPI_Real,0, 4, MPI_COMM_WORLD);
     }
 
     // receive data
     if (rank == 0) {
-      MPI_Recv(&ndims0,			1,					MPI_INT,		onproc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&ndims0,1,MPI_INT,onproc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       dims0 = (int*) calloc(ndims0, sizeof(int));
-      MPI_Recv(dims0,				ndims0,				MPI_INT,		onproc, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      MPI_Recv(&arraynamelength,	1,					MPI_INT,		onproc, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(dims0,ndims0,MPI_INT,onproc, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(&arraynamelength,1,MPI_INT,onproc, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       arrayname0 = (char*) calloc(arraynamelength, sizeof(char));
-      MPI_Recv(arrayname0,		arraynamelength,	MPI_CHAR,		onproc, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(arrayname0,arraynamelength,MPI_CHAR,onproc,3,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       n = 1;
       for (int i = 0; i < ndims0; i++)
         n *= dims0[i];
       array0 = (Real*) calloc(n, sizeof(Real));
-      MPI_Recv(array0,			n,					MPI_Real,	onproc, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(array0,n,MPI_Real,onproc,4,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
   // otherwise, set values and pointers as though process 0 had sent data to itself

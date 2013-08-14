@@ -34,15 +34,17 @@
 #define INCLUDE_PROBLEM_H_
 
 //#include "hybrid/basictypes.h"
-
-#include "hybrid/basictypes.h"
+#ifdef USE_OPENCL
+#include "hybrid/opencl_base.h"
+#endif
+#include "hybrid/common.h"
 #include "hybrid/dataspec.h"
 #include "hybrid/kernel.h"
 
 class Problem {
  public:
   Problem();
-  Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real beta);
+  Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank);
   virtual ~Problem();
   DataSpec &dspec;
 
@@ -55,6 +57,9 @@ class Problem {
   bool PreCalcCylinders;
   Real *cylColumns;
   int *FGindices; // indices corresponding to foreground elements
+  int *FGindicesUniform; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  int *FGindicesCyl; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  int *FGindicesSphere; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
 
 #ifdef USE_OPENCL
   OpenCL* cl;

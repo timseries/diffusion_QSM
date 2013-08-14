@@ -33,7 +33,7 @@
 #ifndef INCLUDE_DATASPEC_H_
 #define INCLUDE_DATASPEC_H_
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 
 class DataSpec {
  public:
@@ -42,9 +42,12 @@ class DataSpec {
 
   void Create(double* buf,int rank, int size);
   int size[3];  // data size
-  int N;
+  int N; // number of foxelsdelmap
   int yoffset;
   int zoffset;
+  int mpi_world_size; //!< Brief number of processes, used for splitting up data
+  int rank; //!< Brief the rank of the process which has this dataspec
+  int* orb_divisions; //!< Brief array of divisions from orb algorithm
   double B0;
   double bhat[3];
   double caxis[3];

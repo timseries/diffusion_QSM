@@ -35,7 +35,7 @@
 
 //#include "hybrid/basictypes.h"
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 #include "hybrid/dataspec.h"
 #include "hybrid/modelmap.h"
 
@@ -71,6 +71,7 @@ class Kernel {
   int zoffset;
   ModelMap modelmap;
   int nnz;
+  int _nnz;
   int size;
   int halfsize;
   int N;

@@ -2,14 +2,20 @@
 #use make bluegene for normal compilation
 #use make bluegene profile to include profiling
 CC		= $(PREP) mpicxx
-CPPFLAGS	= -c -O3 -qinline
+CPPFLAGS	= -c -O3 -DSINGLE_PRECISION
 CPPFLAGS 	+= -Iinclude
 LDFLAGS		=
 LIBS		= 
+SOURCES 	=
 
 ifdef hybrid
 SOURCEDIR     	= src/hybrid
-SOURCES		= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/modelmap.cc $(SOURCEDIR)/dataspec.cc
+ifdef USE_OPENCL
+CPPFLAGS 	+= -DUSE_OPENCL -msse4a --fast-math
+LDFLAGS 	+= -lm -lOpenCL
+SOURCES		+= $(SOURCEDIR)/opencl_base.cc
+endif
+SOURCES		+= $(SOURCEDIR)/arghandler.cc $(SOURCEDIR)/modelmap.cc $(SOURCEDIR)/dataspec.cc
 SOURCES		+= $(SOURCEDIR)/output.cc $(SOURCEDIR)/util.cc
 SOURCES		+= $(SOURCEDIR)/kernel.cc $(SOURCEDIR)/problem.cc
 SOURCES		+= $(SOURCEDIR)/process.cc $(SOURCEDIR)/hybrid_main.cc
@@ -20,6 +26,7 @@ endif
 
 EXECUTABLE	= $(SOURCEDIR)/dqsm
 OBJECTS		= $(SOURCES:.cc=.o)
+
 
 ifdef omp
 CPPFLAGS += -DUSE_OPENMP

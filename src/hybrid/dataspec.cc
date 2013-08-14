@@ -46,6 +46,7 @@ DataSpec::DataSpec(){
   N=0;
   yoffset=0;
   zoffset=0;
+  orb_divisions=NULL;
   B0=0;
   bhat[0]=0;
   bhat[1]=0;
@@ -58,12 +59,17 @@ DataSpec::DataSpec(){
   start=0;
   end=0;
   range=0;
+  mpi_world_size=0;
+  rank=0;
 }
 DataSpec::~DataSpec() {}
 void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   // process header into relevant variables
+  //buf is a file buffer created by loadDeltaB
   int ElsPerProc=0;
   double bmag=0;
+  this->mpi_world_size=mpi_world_size;
+  this->rank=rank;
   N = (int) buf[0];
   size[0] = (int) buf[1];
   size[1] = (int) buf[2];
@@ -88,4 +94,35 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   end = start + ElsPerProc +
     ((rank < N - ElsPerProc * mpi_world_size) ? 1 : 0);
   range=end-start;
+  //orb arrray divisions based on the intialized world size
+  orb_divisions=(int*) calloc(mpi_world_size-2, sizeof(int));
+
 }
+// void DataSpec::PartitionByORB() {
+//   ORB(0,N,0,mpi_world_size-2);
+//   if (rank==0) {
+//     start=0;
+//   } else {
+//     start=orb_divisions[rank-1]+1;
+//   }
+//   if (rank==(mpi_world_size-1)) {
+//     end=N;
+//   } else {
+//     end=orb_divisions[rank];
+//   }
+//   range=end-start;
+// }
+// void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end) {
+
+//   //recursively partition the 
+//   double work=
+//   int data_div=;
+//   if (orb_start==orb_end) {
+//     orb_divisions[orb_start]=data_div;
+//   } else {
+//     int orb_div=(orb_start+orb_end)/2;
+//     orb_divisions[orb_div]=data_div;
+//     ORB(data_start,data_div,orb_start,orb_div-1);
+//     ORB(data_div,data_end,orb_div+1,orb_end);
+//   }
+// }

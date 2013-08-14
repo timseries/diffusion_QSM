@@ -32,6 +32,9 @@
 */
 
 #include "hybrid/process.h"
+#ifdef USE_OPENCL
+#include "hybrid/opencl_base.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -56,9 +59,6 @@ extern "C" {
 #include <omp.h>
 #endif
 
-#ifdef USE_OPENCL
-#include "opencl_base.h"
-#endif
 
 using ::util::checkVersion;
 using ::util::checkEndianness;
@@ -83,15 +83,17 @@ bool Process::Init(int argc, char** args) {
   dspec.caxis[2] = 0;
   // initilize the output object
   myout.Init(arghandler, rank, size);
-  // Load the data, mask, and model
+  // Load the data, mask, and create the model
   if (!loadDeltaB()) goto exitnow;
+  if (!loadMask()) goto exitnow;
+  if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
+  // Adjust the dataspec using orthogonal recursive bisection 
   printroot("rank: %d",rank);
   printroot("dspec start: %d\n", dspec.start);
   printroot("dspec end: %d\n", dspec.end);
-  myout.DistrArray(deltab, dspec.end - dspec.start, 3, dspec.size, "deltab");
-  if (!loadMask()) goto exitnow;
+
+  myout.DistrArray(deltab, dspec.range, 3, dspec.size, "deltab");
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
-  if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
   // initialize chi vector
   chi = (Real*) calloc(dspec.N, sizeof(Real));
   if (arghandler.GetArg("-chi", filepath)) {
@@ -195,7 +197,7 @@ bool Process::loadDeltaB() {
   if (rank==0) printroot("Reading-in MPI header...\n");
   MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
 
-  // byte swap header if requsired
+  // byte swap header if required
   if (rank==0) printroot("Byte-swapping header...\n");
   if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
 
@@ -330,6 +332,9 @@ bool Process::FullPass() {
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   Real *cylColumns;
   int *FGindices; // indices corresponding to foreground elements
+  int *FGindicesUniform; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  int *FGindicesCyl; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  int *FGindicesSphere; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
 
   Real *new_x;
 
@@ -392,22 +397,79 @@ bool Process::FullPass() {
 
   //==================================================================================================================
   // Create Arrays....
-  P = new Problem(kernel, dspec, tau, alpha, beta);
+  P = new Problem(kernel, dspec, arghandler, tau, alpha, beta, rank);
 
   //==================================================================================================================
   // Create foreground indices array and initialise x
   FGindices=P->FGindices;
+  FGindicesCyl=P->FGindicesCyl;
+  FGindicesSphere=P->FGindicesSphere;
   if (rank==0) printroot("   Creating foreground indices array ...\n");
   //FGindices = (int*) calloc(dspec.N, sizeof(int));
   o = 0;
+  int nFGCyls=0;
+  int nFGSpheres=0;
   for (p = 0; p < dspec.N; p++) {
     if (mask[p]) {
       FGindices[o] = p;
+      if (kernel.modelmap.mask[p] != 1) {
+        FGindicesCyl[nFGCyls]=p;
+        nFGCyls++;
+      } else {
+        FGindicesSphere[nFGSpheres]=p;
+        nFGSpheres++;
+      }
       o++;
     }
   }
+  
+  // Create uniform foreground indices array and initialise x
+  double ratio=0;
+  int large_count=0;
+  int small_count=0;
+  int target_large_count=0;
+  int target_small_count=0;
+  double target_ratio=0;
+  int* larger_array;
+  int* smaller_array;
+  if (nFGSpheres>nFGCyls) {
+    larger_array=FGindicesSphere;
+    smaller_array=FGindicesCyl;
+    target_large_count=nFGSpheres;
+    target_small_count=nFGCyls;
+  } else {
+    larger_array=FGindicesCyl;
+    smaller_array=FGindicesSphere;
+    target_large_count=nFGCyls;
+    target_small_count=nFGSpheres;
+  }
+  target_ratio=((double) target_large_count)/target_small_count;
+  FGindicesUniform=P->FGindicesUniform;
+  if (rank==0) printroot("   Creating uniform foreground indices array ...\n");
+  o = 0;
 
-
+  for (p = 0; p < dspec.N; p++) {
+    if (mask[p]) {
+      if ((ratio<target_ratio) && (large_count<target_large_count)) { //add some from the large set
+        FGindicesUniform[o] = larger_array[large_count];                   
+        large_count++;
+      } else if ((ratio>target_ratio) && (small_count<target_small_count)){
+        FGindicesUniform[o] = smaller_array[small_count];                   
+        small_count++;
+      } else if (large_count<target_large_count) {
+        FGindicesUniform[o] = larger_array[large_count];                   
+        large_count=large_count+(target_large_count-large_count>0);
+      } else if (small_count<target_small_count){
+        FGindicesUniform[o] = smaller_array[small_count];                   
+        small_count=small_count+(target_small_count-small_count>0);
+      } else {
+        if (rank==0) printroot("error: index out of bounds, sum of small/large=%d, total FG number=%d\n", 
+                               small_count+large_count,dspec.nFG);
+      }
+      ratio = ((double) large_count)/small_count;
+      o++;
+    }
+  }
 
   //==================================================================================================================
   // Initialise x
@@ -464,17 +526,22 @@ bool Process::FullPass() {
       px = p - py * dspec.yoffset - pz * dspec.zoffset;
       
       for (o = 0; o < dspec.nFG; o++) {
-        mix = kernel.modelmap.mask[FGindices[o]];
+        //        mix = kernel.modelmap.mask[FGindices[o]];
+               mix = kernel.modelmap.mask[FGindicesUniform[o]];
         if (mix != -1) {
-          oz = FGindices[o] / dspec.zoffset;
-          oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
-          ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+          // oz = FGindices[o] / dspec.zoffset;
+          // oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+          // ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+          oz = FGindicesUniform[o] / dspec.zoffset;
+          oy = (FGindicesUniform[o] - oz * dspec.zoffset) / dspec.yoffset;
+          ox = FGindicesUniform[o] - oy * dspec.yoffset - oz * dspec.zoffset;
           
           rx = px - ox + kernel.halfsize;
           ry = py - oy + kernel.halfsize;
           rz = pz - oz + kernel.halfsize;          
           
-          cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindices[o]);
+          // cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindices[o]);
+          cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindicesUniform[o]);
         }
       }
     }
@@ -495,7 +562,7 @@ bool Process::FullPass() {
   cl_enqueue_write(P->cl, P->cl_mapz, P->cl_size_cyl, kernel.modelmap.z);
   cl_enqueue_write(P->cl, P->cl_skernel, kernel._nnz * sizeof(Real), kernel.skernel);
   cl_enqueue_write(P->cl, P->cl_mask, sizeof(int) * P->dspec.N, kernel.modelmap.mask);
-  cl_enqueue_write(P->cl, P->cl_deltab, P->cl_size_n, DeltaB);
+  cl_enqueue_write(P->cl, P->cl_deltab, P->cl_size_n, deltab);
 #endif
   //==================================================================================================================
   // Start iterations
@@ -522,7 +589,8 @@ bool Process::FullPass() {
 
     // Ax_b = A * x - b
     // Dx = D * x
-    MultAdd(P,P->Ax_b,P->Dx,P->x,P->x,deltab,true);
+    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true,first,iteration);
+    first=false;
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
     tmins = floor(tsecs/60);
@@ -532,7 +600,7 @@ bool Process::FullPass() {
 
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
-    MultAdd(P,P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false);
+    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,first,iteration);
           printroot("after second  multadd....\n",p);
           printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
@@ -642,7 +710,7 @@ bool Process::FullPass() {
   if (rank == 0)
   {
     printf("\n#procs, threads, per GPU size, global size, problem size, kernel1 time, kernel2 time, kernel3 time, wall time\n");
-    printf("%d, %d, %d, %d, %d, ", size, P->cl->nthreads, P->cl->global_size, 0, P->cl->problem_size);
+    printf("%d, %lu, %lu, %d, %d, ", size, P->cl->nthreads, P->cl->global_size, 0, P->cl->problem_size);
     printf("%5.2lf, %5.2lf, %5.2lf, %5.2lf\n", P->profile1.total_time, P->profile2.total_time, P->profile3.total_time, wall_time);
   }
 #else
@@ -672,7 +740,7 @@ bool Process::FullPass() {
   //                     Real multiplicand_fidelity,Real multiplicand_regularizer, 
   //                     Real addend, bool dir) {
 //void Process::MultAdd(Problem *P,bool dir) {
-void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir) {
+void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir, bool first, int iteration) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   int recvcounts, displs;
@@ -682,7 +750,7 @@ void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularize
   Real absolute_threshold = 1e-16;
   int max_iters = 1000;
   double rms_x, rms_diff_x; //, old_rms_diff_x;
-  int iteration = 0;
+  //int iteration = 0;
 
   int o, ox, oy, oz;
   int p, px, py, pz;
@@ -696,7 +764,9 @@ void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularize
 
   int nthreads,chunk,tid;
 
-  #ifdef USE_OPENCL
+#ifdef USE_OPENCL
+  //TODO(timseries): reduce codesize here
+  if (dir){
     P->profile1.kern_time = 0;
     cl_size(P->cl, P->dspec.range, 0, P->threads, rank);  //Resize
     if (first)
@@ -705,31 +775,24 @@ void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularize
       cl_enqueue_write(P->cl, P->cl_x, P->cl_size_fg, P->x);
       first = false;
     }
-    cl_set_arg(cl, P->kernel_iterate1, 13, P->dspec.start);
-    cl_set_arg(cl, P->kernel_iterate1, 14, P->dspec.end);
+    cl_set_arg(cl, P->kernel_iterate1, 14, P->dspec.start);
+    cl_set_arg(cl, P->kernel_iterate1, 15, P->dspec.end);
     // Perform the operations
     cl_set_arg(cl, P->kernel_zero, 4, P->dspec.range);
     cl_enqueue_kernel(P->cl, P->kernel_zero, NULL);
     //Only have x values on 2nd and subsequent iterations
-    if (iteration == 0)
-    {
-      //Cache values for iterate1
-      cl_enqueue_kernel(P->cl, P->kernel_cache, &P->profile1.event);   //Profile this kernel
-    }
-
-    else
+    if (iteration > 0)
     {
       //Split the job up if requested
       int BLOCK = (dspec.nFG / P->divide + 0.5);
-    
       //printf("iterate1 0 ");
       for (int start=0; start<dspec.nFG; start += BLOCK)
       {
         int end = start + BLOCK;
         if (end > dspec.nFG) end = dspec.nFG;
         //printf("%d ", end);
-        cl_set_arg(cl, P->kernel_iterate1, 15, start);
-        cl_set_arg(cl, P->kernel_iterate1, 16, end);
+        cl_set_arg(cl, P->kernel_iterate1, 16, start);
+        cl_set_arg(cl, P->kernel_iterate1, 17, end);
         cl_enqueue_kernel(P->cl, P->kernel_iterate1, &P->profile1.event);   //Profile this kernel
       }
       //printf("\n");
@@ -739,8 +802,35 @@ void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularize
     cl_enqueue_kernel(P->cl, P->kernel_delta_b, NULL);
     cl_run(P->cl);
     //Profile
-    cl_profile(P->cl, &P->profile1);
+    if (iteration > 0) cl_profile(P->cl, &P->profile1);
+  } else {
+        P->profile2.kern_time = 0;
+    cl_size(P->cl, P->dspec.nFG, 0, P->threads, rank);  //Resize
+    //Split the job up if requested
+    int BLOCK = (P->dspec.range / P->divide + 0.5);
+    //printf("iterate2 0 ");
+    for (int start=P->dspec.start; start<P->dspec.end; start += BLOCK)
+    {
+      int end = start + BLOCK;
+      if (end > P->dspec.end) end = P->dspec.end;
+      //printf("%d ", end);
+      cl_set_arg(cl, P->kernel_iterate2, 15, start);
+      cl_set_arg(cl, P->kernel_iterate2, 16, end);
+      cl_set_arg(cl, P->kernel_iterate2, 17, P->dspec.start);
+      // Perform the operations
+      cl_enqueue_kernel(P->cl, P->kernel_iterate2, &P->profile2.event);   //Profile this kernel
+    }
+    //printf("\n");
+    // Read the results back
+    cl_enqueue_read(P->cl, P->cl_AtAx_b, P->cl_size_fg, P->AtAx_b);
+    cl_enqueue_read(P->cl, P->cl_DtDx, P->cl_size_fg, P->DtDx);
+    //Run queued operations
+    cl_run(P->cl);
+    //Profile
+    cl_profile(P->cl, &P->profile2);
+  }
 #else //assume we're using CPU on a bluegene or PC
+    //TODO(timseries): fix this initialization section to not use P!
     if (dir) {
         memset(P->Ax_b, 0, (P->dspec.range) * sizeof(Real));
         memset(P->Dx, 0, (P->dspec.range) * sizeof(Real));
@@ -769,10 +859,14 @@ void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularize
 #pragma omp for
     for (o = 0; o < P->dspec.nFG; o++) {
       if ((P->x[o] and dir) or (!dir)) {
-       
-        oz = P->FGindices[o] / P->dspec.zoffset;
-        oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
-        ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
+
+        // oz = P->FGindices[o] / P->dspec.zoffset;
+        // oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
+        // ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
+
+        oz = P->FGindicesUniform[o] / P->dspec.zoffset;
+        oy = (P->FGindicesUniform[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
+        ox = P->FGindicesUniform[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
 
         pz = P->dspec.start / P->dspec.zoffset;
         py = (P->dspec.start - pz * dspec.zoffset) / P->dspec.yoffset;
@@ -806,17 +900,18 @@ void Process::MultAdd(Problem* P, Real* result_fidelity, Real* result_regularize
           
           if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
             // Linear system
-            mix = kernel.modelmap.mask[P->FGindices[o]];
+            // mix = kernel.modelmap.mask[P->FGindices[o]];
+            mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
             if (mix == -1) { // spherical kernel
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
             }
             else if (P->PreCalcCylinders) {
-              //              result_fidelity[index2] += cylColumns[mix*dN + p-dStart] * multiplicand_fidelity[index1];
-              if (dir) {
-                  P->Ax_b[index2] += P->cylColumns[mix*P->dspec.range + index2] * P->x[index1];
-              } else {
-                P->AtAx_b[index2] += P->cylColumns[mix*P->dspec.range + index2] * P->Ax_b[index1];
-              }
+              result_fidelity[index2] += P->cylColumns[mix*P->dspec.range + p-P->dspec.start] * multiplicand_fidelity[index1];
+              // if (dir) {
+              //   P->Ax_b[index2] += P->cylColumns[mix*P->dspec.range + index2] * P->x[index1];
+              // } else {
+              //   P->AtAx_b[index2] += P->cylColumns[mix*P->dspec.range + index2] * P->Ax_b[index1];
+              // }
             }
             else if (rx == 0 && ry == 0 && rz == 0) {
               result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];

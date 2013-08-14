@@ -32,6 +32,9 @@
 */
 
 #include "hybrid/problem.h"
+#ifdef USE_OPENCL
+#include "hybrid/opencl_base.h"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,38 +45,48 @@
 
 #include <mpi.h>
 
-Problem::Problem(Kernel &kernel, DataSpec &dspec, Real tau, Real alpha, Real beta) : dspec(dspec) {
+Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank) : dspec(dspec) {
   // Get start and end of local portion of Deltab array
     
   //==================================================================================================================
   // Create Ax_b array
-  printroot("   Creating Ax_b array ...\n");
+  if (rank==0) printroot("   Creating Ax_b array ...\n");
   Ax_b = (Real*) calloc(dspec.range, sizeof(Real));
     
   //==================================================================================================================
   // Create AtAx_b array
-  printroot("   Creating AtAx_b array ...\n");
+  if (rank==0) printroot("   Creating AtAx_b array ...\n");
   AtAx_b = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
   // Create Dx array
-  printroot("   Creating Dx array ...\n");
+  if (rank==0) printroot("   Creating Dx array ...\n");
   Dx = (Real*) calloc(dspec.range, sizeof(Real));
     
   //==================================================================================================================
   // Create DtDx array
-  printroot("   Creating DtDx array ...\n");
+  if (rank==0) printroot("   Creating DtDx array ...\n");
   DtDx = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
   // Create x array
-  printroot("   Creating x array ...\n");
+  if (rank==0) printroot("   Creating x array ...\n");
   x = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
   // Create foreground indices array
-  printroot("   Creating foreground indices array ...\n");
+  if (rank==0) printroot("   Creating foreground indices array ...\n");
   FGindices = (int*) calloc(dspec.N, sizeof(int));
+
+  // Create foreground indices array
+  if (rank==0) printroot("   Creating uniform foreground indices array ...\n");
+  FGindicesUniform = (int*) calloc(dspec.N, sizeof(int));
+
+  if (rank==0) printroot("   Creating foreground cylinder indices array ...\n");
+  FGindicesCyl = (int*) calloc(dspec.N, sizeof(int));
+
+  if (rank==0) printroot("   Creating foreground sphere indices array ...\n");
+  FGindicesSphere = (int*) calloc(dspec.N, sizeof(int));
 
   //==================================================================================================================
   // Create cylColumns array
@@ -194,6 +207,7 @@ Problem::~Problem() {
   free(DtDx);
   free(x);
   free(FGindices);
+  free(FGindicesUniform);
   free(cylColumns);
 
 #ifdef USE_OPENCL

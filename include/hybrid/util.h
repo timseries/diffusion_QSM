@@ -40,7 +40,7 @@
 
 #include <mpi.h>
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 
 namespace util {
 void checkEndianness(MPI_File &fptr, bool &flgByteSwap);

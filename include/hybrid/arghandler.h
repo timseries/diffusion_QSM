@@ -33,7 +33,7 @@
 #ifndef INCLUDE_HYBRID_ARGHANDLER_H_
 #define INCLUDE_HYBRID_ARGHANDLER_H_
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 
 class ArgHandler {
  public:

@@ -35,7 +35,7 @@
 
 #include <mpi.h>
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 #include "hybrid/arghandler.h"
 
 class Output {

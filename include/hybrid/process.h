@@ -33,7 +33,7 @@
 #ifndef INCLUDE_PROCESS_H_
 #define INCLUDE_PROCESS_H_
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 #include "hybrid/dataspec.h"
 #include "hybrid/arghandler.h"
 #include "hybrid/kernel.h"
@@ -52,15 +52,15 @@ class Process {
   bool loadDeltaB();
   bool loadMask();
   bool FullPass();
-  inline void MultAdd(Problem* P, Real* result_fidelity, Real* result_reguliarizer,
+  inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
                       Real* multiplicand_fidelity, Real* multiplicand_regularizer, 
-                      Real* addend, bool dir);
+                      Real* addend, bool dir, bool first, int iteration);
   //  inline void MultAdd(Problem *P, bool dir);
 
   bool WriteOut();
   bool CleanUp();
   models model;
-  bool *mask;
+  bool *mask; //!< Brief vector size N, 1 where there is a foreground voxel, 0 background
   Kernel kernel;
   DataSpec dspec;
   

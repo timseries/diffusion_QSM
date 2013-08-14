@@ -33,7 +33,7 @@
 #ifndef INCLUDE_MODELMAP_H_
 #define INCLUDE_MODELMAP_H_
 
-#include "hybrid/basictypes.h"
+#include "hybrid/common.h"
 #include "hybrid/dataspec.h"
 #include "hybrid/arghandler.h"
 
@@ -43,10 +43,10 @@ class ModelMap {
   virtual ~ModelMap();
   bool Create(DataSpec &dspec, const ArgHandler &arghandler);
   void close(void);
-  int *mask;
-  Real *x;
-  Real *y;
-  Real *z;
-  int ncyls;
+  int *mask; //!< Brief size N, entries corresponding to spherical voxel (-1) or cylyindrical voxel (n>0, n is the index of the cylinder)
+  int ncyls; //!< Brief number of cylinders in the dataset
+  Real *x; //!< Brief size ncyls, the vector of x components of the cylindrical voxel direction
+  Real *y; //!< Brief size ncyls, the y component of the cylindrical voxel direction
+  Real *z; //!< Brief size ncyls, the y component of the cylindrical voxel direction
 };
 #endif  // INCLUDE_MODELMAP_H_

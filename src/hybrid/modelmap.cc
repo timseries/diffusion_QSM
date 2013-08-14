@@ -48,10 +48,10 @@ using ::util::byteswap;
 
 ModelMap::ModelMap() {
   mask = NULL;
+  ncyls = 0;
   x = NULL;
   y = NULL;
   z = NULL;
-  ncyls = 0;
 }
 ModelMap::~ModelMap() {}
 // TODO(timseries): The sizeof(type)'s would be best replaced with a constant...
@@ -63,8 +63,8 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
   bool flgByteSwap;
   MPI_Offset offset, disp;
   bool flg;
-  Real threshold;
-  double *mx, *my, *mz;
+  Real threshold; //!< Brief fractional anisotropy decision barrier for cylinder (above) or sphere (below)
+  double *mx, *my, *mz; //!< Brief x,y,z compoentents of the diffusion tensor orientations
 
   //  if (rank==0) printroot("Loading model map ...\n");
   flg = arghandler.GetArg("-modelmap", filepath);

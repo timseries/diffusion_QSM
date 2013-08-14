@@ -2,8 +2,10 @@
 
 #usage ./dqsm build_type number_of_nodes number_of_processes number_of_processes_per_node number_of_threads number_of_iterations
 #build_type can be either "hybrid" or "legacy"
+#example ./dqsm.sh "hybrid" 2 2 1 2 4 runs the executable in the "hybrid directory"
+# with 2 nodes, 2 processes, 1 process per node, 2 threads, and 4 iterations
 executable=./src/$1/dqsm
-datadir=./data/mouse
+datadir=./data/legacy
 data="-DeltaB $datadir/deltab.bin"
 mask="-mask $datadir/mask.bin"
 modelmap="-modelmap $datadir/models.bin"

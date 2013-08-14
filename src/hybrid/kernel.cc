@@ -48,6 +48,7 @@
 Kernel::Kernel() {
   kernel = NULL;
   nnz = 0;
+  _nnz = 0;
   skernel = NULL;
   ckernel = NULL;
   ctr = NULL;
