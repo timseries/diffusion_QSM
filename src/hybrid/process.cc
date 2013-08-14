@@ -702,7 +702,7 @@ bool Process::FullPass() {
   memset(chi, 0, dspec.N*sizeof(Real));
 
   for (o = 0; o < dspec.nFG; o++) {
-    chi[FGindices[o]] = P->x[o];
+    chi[FGindicesUniform[o]] = P->x[o];
   }
 
     wall_time = MPI_Wtime() - wall_time;
