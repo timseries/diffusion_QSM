@@ -526,22 +526,22 @@ bool Process::FullPass() {
       px = p - py * dspec.yoffset - pz * dspec.zoffset;
       
       for (o = 0; o < dspec.nFG; o++) {
-        //        mix = kernel.modelmap.mask[FGindices[o]];
-               mix = kernel.modelmap.mask[FGindicesUniform[o]];
+               mix = kernel.modelmap.mask[FGindices[o]];
+               // mix = kernel.modelmap.mask[FGindicesUniform[o]];
         if (mix != -1) {
-          // oz = FGindices[o] / dspec.zoffset;
-          // oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
-          // ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
-          oz = FGindicesUniform[o] / dspec.zoffset;
-          oy = (FGindicesUniform[o] - oz * dspec.zoffset) / dspec.yoffset;
-          ox = FGindicesUniform[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+          oz = FGindices[o] / dspec.zoffset;
+          oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
+          ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
+          // oz = FGindicesUniform[o] / dspec.zoffset;
+          // oy = (FGindicesUniform[o] - oz * dspec.zoffset) / dspec.yoffset;
+          // ox = FGindicesUniform[o] - oy * dspec.yoffset - oz * dspec.zoffset;
           
           rx = px - ox + kernel.halfsize;
           ry = py - oy + kernel.halfsize;
           rz = pz - oz + kernel.halfsize;          
           
-          // cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindices[o]);
-          cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindicesUniform[o]);
+          cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindices[o]);
+          // cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindicesUniform[o]);
         }
       }
     }
@@ -601,8 +601,6 @@ bool Process::FullPass() {
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,first,iteration);
-          printroot("after second  multadd....\n",p);
-          printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
@@ -702,7 +700,8 @@ bool Process::FullPass() {
   memset(chi, 0, dspec.N*sizeof(Real));
 
   for (o = 0; o < dspec.nFG; o++) {
-    chi[FGindicesUniform[o]] = P->x[o];
+    // chi[FGindicesUniform[o]] = P->x[o];
+    chi[FGindices[o]] = P->x[o];
   }
 
     wall_time = MPI_Wtime() - wall_time;
@@ -860,13 +859,13 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     for (o = 0; o < P->dspec.nFG; o++) {
       if ((P->x[o] and dir) or (!dir)) {
 
-        // oz = P->FGindices[o] / P->dspec.zoffset;
-        // oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
-        // ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
+        oz = P->FGindices[o] / P->dspec.zoffset;
+        oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
+        ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
 
-        oz = P->FGindicesUniform[o] / P->dspec.zoffset;
-        oy = (P->FGindicesUniform[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
-        ox = P->FGindicesUniform[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
+        // oz = P->FGindicesUniform[o] / P->dspec.zoffset;
+        // oy = (P->FGindicesUniform[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
+        // ox = P->FGindicesUniform[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
 
         pz = P->dspec.start / P->dspec.zoffset;
         py = (P->dspec.start - pz * dspec.zoffset) / P->dspec.yoffset;
@@ -900,8 +899,8 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
           
           if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
             // Linear system
-            // mix = kernel.modelmap.mask[P->FGindices[o]];
-            mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
+            mix = kernel.modelmap.mask[P->FGindices[o]];
+            // mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
             if (mix == -1) { // spherical kernel
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
             }
