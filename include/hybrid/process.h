@@ -54,7 +54,7 @@ class Process {
   bool FullPass();
   inline void MultAdd(Real* result_fidelity, Real* result_reguliarizer,
                       Real* multiplicand_fidelity, Real* multiplicand_regularizer, 
-                      Real* addend, bool dir, bool first, int iteration);
+                      Real* addend, bool dir, int iteration);
   //  inline void MultAdd(Problem *P, bool dir);
 
   bool WriteOut();

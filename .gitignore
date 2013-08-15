@@ -6,3 +6,4 @@ scorep*
 *.txt
 *.pyc
 data/mouse
+/.project

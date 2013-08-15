@@ -563,6 +563,8 @@ bool Process::FullPass() {
   cl_enqueue_write(P->cl, P->cl_skernel, kernel._nnz * sizeof(Real), kernel.skernel);
   cl_enqueue_write(P->cl, P->cl_mask, sizeof(int) * P->dspec.N, kernel.modelmap.mask);
   cl_enqueue_write(P->cl, P->cl_deltab, P->cl_size_n, deltab);
+  // Write initial x buffer
+  cl_enqueue_write(P->cl, P->cl_x, P->cl_size_fg, P->x);
 #endif
   //==================================================================================================================
   // Start iterations
@@ -580,7 +582,6 @@ bool Process::FullPass() {
   int dp = 1; //kernel.halfsize + 1;
 
   double wall_time = MPI_Wtime();
-  bool first = true;
 
   do {
 
@@ -589,8 +590,7 @@ bool Process::FullPass() {
 
     // Ax_b = A * x - b
     // Dx = D * x
-    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true,first,iteration);
-    first=false;
+    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true,iteration);
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
     tmins = floor(tsecs/60);
@@ -600,7 +600,7 @@ bool Process::FullPass() {
 
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,first,iteration);
+    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
           printroot("after second  multadd....\n",p);
           printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
@@ -740,7 +740,7 @@ bool Process::FullPass() {
   //                     Real multiplicand_fidelity,Real multiplicand_regularizer, 
   //                     Real addend, bool dir) {
 //void Process::MultAdd(Problem *P,bool dir) {
-void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir, bool first, int iteration) {
+void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir, int iteration) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   int recvcounts, displs;
@@ -769,12 +769,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
   if (dir){
     P->profile1.kern_time = 0;
     cl_size(P->cl, P->dspec.range, 0, P->threads, rank);  //Resize
-    if (first)
-    {
-      // Write initial x buffer
-      cl_enqueue_write(P->cl, P->cl_x, P->cl_size_fg, P->x);
-      first = false;
-    }
     cl_set_arg(cl, P->kernel_iterate1, 14, P->dspec.start);
     cl_set_arg(cl, P->kernel_iterate1, 15, P->dspec.end);
     // Perform the operations
