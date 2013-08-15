@@ -48,7 +48,7 @@ def plotmpi(indir,mpifiles):
     #ax.set_ylabel('Normalized Time')
     ax.set_ylabel('Time (s)')
     ax.set_xlabel('Process')
-    #ax.set_xticks(ind+width)
+    ax.set_xticks(ind-5*width)
     ax.set_xticklabels(tuple(processes))
     ax.legend(tuple([i[0] for i in rects]),tuple(master_routines))
     for rect in rects:

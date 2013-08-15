@@ -46,7 +46,7 @@ def plotomp(indir,ompfiles):
         allsecnames+=[secnames]
         allsecdata+=[secdata]
         allseclabels+=[seclabels]
-    pdb.set_trace()
+#    pdb.set_trace()
     master_metric_names=secnames[0]
 #    master_metric_names=sorted(list(set(list(itertools.chain(*metric_names)))),key=str.lower)
 #    master_metric_names=sorted(list(set(list(itertools.chain(*metric_names)))),key=str.lower)
@@ -69,7 +69,7 @@ def plotomp(indir,ompfiles):
         for metric_index in range(0,len(metrics[0])):
             if (master_metric_names[metric_index]=='PercentOverhead' \
             or master_metric_names[metric_index]=='LoadImbalance'):
-                metric=[metrics[process][metric_index]/100 for process in range(0,len(metrics))]
+                metric=[metrics[process][metric_index] for process in range(0,len(metrics))]
             else:
                 metric=pu.normvector([[metrics[process][metric_index] for process in range(0,len(metrics))]])[0]
             rects=rects+[ax.bar(ind,tuple(metric),width,color=cm.jet(1.*metric_index/len(master_metric_names)))]
@@ -81,6 +81,7 @@ def plotomp(indir,ompfiles):
         ax.set_title("Normalized OMP metrics for each process: " + indir.split('/')[-1])    
         ax.set_ylabel('Normalized Value or Percentage, where applicable')
         ax.set_xlabel('Process')
+        ax.set_xticks(ind-5*width)
         ax.set_xticklabels(tuple(processes))
         ax.legend(tuple([i[0] for i in rects]),tuple(master_metric_names))
         for rect in rects:
