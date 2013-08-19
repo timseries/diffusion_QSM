@@ -149,10 +149,10 @@ void Process::HandleArgs(int argc, char** args) {
 }
 void Process::StartMPI(int argc, char** args) {
   MPI_Init(&argc, &args);
-// #ifdef HPM
-//   hpmInit();
-//   // hpmStart("main function");
-// #endif
+ #ifdef HPM
+   hpmInit();
+//   hpmStart("main function");
+ #endif
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank==0) printroot("\n------------------------------------------\n");
@@ -569,9 +569,9 @@ bool Process::FullPass() {
 #endif
   //==================================================================================================================
   // Start iterations
-// #ifdef HPM
-//   hpmStart("iteration");
-// #endif
+#ifdef HPM
+  hpmStart("iteration");
+#endif
 
   if (rank==0) printroot("   Starting iterations ...\n");
   //old_rms_diff_x = -1;
@@ -601,15 +601,15 @@ bool Process::FullPass() {
 
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
-<<<<<<< HEAD
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,first,iteration);
+
+    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,true,iteration);
           // printroot("after second  multadd....\n",p);
           // printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
-=======
+
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
           printroot("after second  multadd....\n",p);
           printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
->>>>>>> eef3b96d9485d9fc10665c471208f58fbfb6226e
+
 
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
@@ -688,9 +688,9 @@ bool Process::FullPass() {
 
     iteration++;}
     while (rms_diff_x / rms_x > relative_threshold && rms_diff_x > absolute_threshold && iteration < max_iters);
-// #ifdef HPM
-//   hpmStop("iteration");
-// #endif
+#ifdef HPM
+  hpmStop("iteration");
+#endif
 
   tEnd = MPI_Wtime();
   tsecs = tEnd - tStart;
