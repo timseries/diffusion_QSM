@@ -90,7 +90,7 @@ void cl_append_constant(OpenCL* cl, const char* str);
   clCheck(clEnqueueNDRangeKernel(cl->queue, ker, 1, NULL, &cl->global_size, &cl->nthreads, 0, NULL, eve), "clEnqueueNDRangeKernel")
 
 #define cl_enqueue_write(cl, buf, siz, ptr) \
-  clCheck(clEnqueueWriteBuffer(cl->queue, buf, CL_TRUE, 0, siz, ptr, 0, NULL, NULL), "clEnqueueWriteBuffer")
+  clCheck(clEnqueueWriteBuffer(cl->queue, buf, CL_FALSE, 0, siz, ptr, 0, NULL, NULL), "clEnqueueWriteBuffer")
 
 #define cl_enqueue_read(cl, buf, siz, ptr) \
   clCheck(clEnqueueReadBuffer(cl->queue, buf, CL_FALSE, 0, siz, ptr, 0, NULL, NULL), "clEnqueueReadBuffer")

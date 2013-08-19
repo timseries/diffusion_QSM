@@ -118,7 +118,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   divide = 1.0;
   arghandler.GetArg("-divide", divide);
 
-  char* defkern = "landweber.cl";
+  char* defkern = "src/hybrid/landweber.cl";
   clkern = defkern;
   arghandler.GetArg("-cl_kernel", clkern);
 
@@ -148,7 +148,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
 
   //Read & build the sources
   const char* kernel_src = cl_readfile(clkern);
-  const char* common_src = cl_readfile("common.h");
+  const char* common_src = cl_readfile("include/hybrid/common.h");
   //Constants must be included after data type definitions from common.h
   const char *srcptrs[]={common_src, cl->constants, kernel_src};
   //Build source from 5 files, no additional compiler options

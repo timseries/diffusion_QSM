@@ -2,7 +2,7 @@
 #use make bluegene for normal compilation
 #use make bluegene profile to include profiling
 CC		= $(PREP) mpicxx
-CPPFLAGS	= -c -O3 -DSINGLE_PRECISION
+CPPFLAGS	= -c -DSINGLE_PRECISION
 CPPFLAGS 	+= -Iinclude
 LDFLAGS		=
 LIBS		= 
@@ -40,7 +40,9 @@ endif
 endif 
 
 ifdef debug
-CPPFLAGS +=  -Wall -Werror -g
+CPPFLAGS +=  -Wall -g
+else
+CPPFLAGS +=  -O3 
 endif 
 
 ifdef bluegene

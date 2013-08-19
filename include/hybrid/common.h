@@ -5,9 +5,6 @@
 //Read a value of any type as an int
 #define ASINT(A) *(int*)(&A)
 
-//Number of atom types (changes to kernels etc will be required to support > 2)
-#define Comp 2
-
 //Define data types for switching precision on both CPU and GPU
 //For single precision mode, #define SINGLE_PRECISION
 #ifdef SINGLE_PRECISION

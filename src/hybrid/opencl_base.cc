@@ -159,13 +159,15 @@ void cl_size(OpenCL* cl, unsigned int N, unsigned int sections, unsigned int thr
 // Build source
 void cl_build(OpenCL* cl, const char* srcptr[], const char* options, unsigned int count)
 {
-  /*
+  /* Dump source for debugging */
   int k;
+  FILE* fk = fopen("generated_kernel.cl", "w");
   for (k=0; k<count; k++)
   {
-    if (srcptr[k]) printf("---------------------\n%s", srcptr[k]);
+    if (fk && srcptr[k])
+      fputs(srcptr[k], fk);
   }
-  getchar();*/
+  fclose(fk);
 
   // Submit the source code of the kernel to OpenCL
   cl_int error;

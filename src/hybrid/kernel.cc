@@ -213,7 +213,7 @@ bool Kernel::Create(const models &model,
   //  if (rank==0) printroot("   kernel size = %d\n", size);
   halfsize = size/2;
   N = size*size*size;
-  nnz = N;
+  nnz = _nnz = N;
   if (model == MODEL_SPHERICAL) {
     skernel = reinterpret_cast<Real*>(calloc(nnz, sizeof(Real)));
   } else {
