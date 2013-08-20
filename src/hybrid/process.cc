@@ -602,10 +602,6 @@ bool Process::FullPass() {
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
 
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,true,iteration);
-          printroot("after second  multadd....\n",p);
-          printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
-
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
           printroot("after second  multadd....\n",p);
           printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
@@ -651,9 +647,9 @@ bool Process::FullPass() {
     // Calculate new x and rms values
     rms_x = 0;
     rms_diff_x = 0;
-    Real new_x;
+
     for (o = 0; o < dspec.nFG; o++) {
-      new_x = P->x[o] - alpha * tau * P->AtAx_b[o] - beta * tau * P->DtDx[o];
+      Real new_x = P->x[o] - alpha * tau * P->AtAx_b[o] - beta * tau * P->DtDx[o];
       rms_x += new_x * new_x;
       rms_diff_x += (new_x - P->x[o]) * (new_x - P->x[o]);
       P->x[o] = new_x;  //Copy result to x[]
