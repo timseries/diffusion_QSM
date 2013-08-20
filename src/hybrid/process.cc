@@ -851,12 +851,12 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
 #ifdef USE_OPENMP
       tid = omp_get_thread_num();
 
-      if (tid == 0 && rank==0 && iteration==0)
-      {
+      //      if (tid == 0 && rank==0 && iteration==0)
+//      {
         nthreads = omp_get_num_threads();
         printf("Starting  A*x-b using %d threads\n",nthreads);
-        printf("Initializing matrices...\n");
-      }
+        printf("Initializing matrices on thread %d: \n", tid);
+	//      }
 #endif
 #pragma omp for
     for (o = 0; o < P->dspec.nFG; o++) {
@@ -865,7 +865,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         // oz = P->FGindices[o] / P->dspec.zoffset;
         // oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
         // ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
-	
         oz = P->FGindicesUniform[o] / P->dspec.zoffset;
         oy = (P->FGindicesUniform[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
         ox = P->FGindicesUniform[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
