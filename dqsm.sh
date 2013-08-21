@@ -23,6 +23,7 @@ export OMP_NUM_THREADS=$5
 
 today=$(date "+%d%m%Y")
 outdir=out/$1/$today/n$2p$3ppn$4t$5i$6_$7
+echo $outdir
 if [ -d $outdir ]; then
     echo "outdir exists, removing old data"
     rm -rf $outdir

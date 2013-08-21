@@ -40,7 +40,8 @@ endif
 endif 
 
 ifdef debug
-CPPFLAGS +=  -Wall -g
+#CPPFLAGS +=  -Wall -g
+CPPFLAGS +=  -g
 else
 CPPFLAGS +=  -O3 
 endif 
@@ -77,7 +78,7 @@ CPPFLAGS += -DOPENMP_PROFILE #never used in the code, just for consistency...
 endif
 endif
 
-ifdef gprof_profile
+ifdef gmon_profile
 CPPFLAGS += -pg
 LDFLAGS += -pg
 endif
