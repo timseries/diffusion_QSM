@@ -23,6 +23,7 @@ if [ -d $outdir ]; then
 else
     mkdir -p $outdir
 fi
+mkdir $outdir
 for profile in mpi pomp hpm gmon
 do
 if [ $7 -eq 1 ]; then
