@@ -603,8 +603,8 @@ bool Process::FullPass() {
     // DtDx = D' * Dx
 
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
-          printroot("after second  multadd....\n",p);
-          printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
+          // printroot("after second  multadd....\n",p);
+          // printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
 
     tIterEnd2 = MPI_Wtime();
@@ -839,8 +839,8 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     int index1=0;
     int index2=0;
 #ifdef USE_OPENMP
-    if (rank==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
-    if (rank==0) printroot("Max threads: %d\n", omp_get_max_threads());
+    if (rank==0 && iteration==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
+    if (rank==0 && iteration==0) printroot("Max threads: %d\n", omp_get_max_threads());
 #endif
 #pragma omp parallel shared(nthreads,chunk,dir) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix,index1,index2) if (OPENMP)
     {
@@ -850,8 +850,8 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
       //      if (tid == 0 && rank==0 && iteration==0)
 //      {
         nthreads = omp_get_num_threads();
-        printf("Starting  A*x-b using %d threads\n",nthreads);
-        printf("Initializing matrices on thread %d: \n", tid);
+        // printf("Starting  A*x-b using %d threads\n",nthreads);
+        // printf("Initializing matrices on thread %d: \n", tid);
 	//      }
 #endif
 #pragma omp for

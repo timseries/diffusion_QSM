@@ -15,6 +15,7 @@ def plotomp(indir,ompfiles):
     allsecnames=[]
     allsecdata=[]
     allseclabels=[]
+#read in all of the data and parse
     for fname in ompfiles:
         with open(indir+'/'+fname) as f:
             data = f.read()
@@ -32,7 +33,7 @@ def plotomp(indir,ompfiles):
             match=re.search('MeanThreadtime',data[i])
             if match: 
                 einds.append(i+1)
-        #pull out each of the sections
+                #pull out each of the sections
         eind=0
         secnames=[]
         secdata=[]
@@ -57,6 +58,7 @@ def plotomp(indir,ompfiles):
     width=.07
 
 #do one plot for each instr_section
+    pdb.set_trace()
     for instr_section in range(0,len(allsecdata[0])):
         ind = np.arange(len(allsecdata))
         fig = plt.figure(instr_section)

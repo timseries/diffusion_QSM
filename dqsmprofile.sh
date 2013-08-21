@@ -7,7 +7,7 @@
 
 #environment variables
 export HPM_OUTPUT_PROCESS=all
-export HPM_SCOPE=node
+export HPM_SCOPE=process
 export HPM_ASC_OUTPUT=yes
 export HPM_VIZ_OUTPUT=no
 export HPM_METRICS=yes
@@ -34,5 +34,6 @@ make hybrid=1 omp=1 bluegene=1 debug=1 "$profile"_profile=1
 else
 #combine mode
 cp out/$1/$today/n$2p$3ppn$4t$5i$6_"$profile"_profile/"$profile"* $outdir/
+cp out/$1/$today/n$2p$3ppn$4t$5i$6_"$profile"_profile/out*.txt $outdir/
 fi
 done
