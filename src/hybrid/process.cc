@@ -149,10 +149,10 @@ void Process::HandleArgs(int argc, char** args) {
 }
 void Process::StartMPI(int argc, char** args) {
   MPI_Init(&argc, &args);
-//  #ifdef HPM
-//    hpmInit();
-// //   hpmStart("main function");
-//  #endif
+ #ifdef HPM
+   hpmInit();
+//   hpmStart("main function");
+ #endif
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank==0) printroot("\n------------------------------------------\n");
@@ -569,9 +569,9 @@ bool Process::FullPass() {
 #endif
   //==================================================================================================================
   // Start iterations
-// #ifdef HPM
-//   hpmStart("iteration");
-// #endif
+#ifdef HPM
+  hpmStart("iteration");
+#endif
 
   if (rank==0) printroot("   Starting iterations ...\n");
   //old_rms_diff_x = -1;
@@ -684,9 +684,9 @@ bool Process::FullPass() {
 
     iteration++;}
     while (rms_diff_x / rms_x > relative_threshold && rms_diff_x > absolute_threshold && iteration < max_iters);
-// #ifdef HPM
-//   hpmStop("iteration");
-// #endif
+#ifdef HPM
+  hpmStop("iteration");
+#endif
 
   tEnd = MPI_Wtime();
   tsecs = tEnd - tStart;
@@ -977,10 +977,10 @@ bool Process::CleanUp(){
   //   MPI_Send(NULL, 0, MPI_CHAR, rank+1, 0, MPI_COMM_WORLD);
   //     }
   MPI_Finalize();
-// #ifdef HPM
-//   // hpmStop("main function");
-//   hpmTerminate();
-// #endif
+#ifdef HPM
+  // hpmStop("main function");
+  hpmTerminate();
+#endif
   // TODO(timhseries): include some error checking code as with the other methods in this class. Just return 1 for now....
   return 1;  
 }
