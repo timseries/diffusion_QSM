@@ -6,7 +6,7 @@
 # with 2 nodes, 2 processes, 1 process per node, 2 threads, and 4 iterations
 
 #environment variables
-export HPM_OUTPUT_PROCESS=ROOT
+export HPM_OUTPUT_PROCESS=all
 export HPM_SCOPE=node
 export HPM_ASC_OUTPUT=yes
 export HPM_VIZ_OUTPUT=no
@@ -35,4 +35,3 @@ else
 cp out/$1/$today/n$2p$3ppn$4t$5i$6_"$profile"_profile/"$profile"* $outdir 
 fi
 done
-make clean hybrid=1
