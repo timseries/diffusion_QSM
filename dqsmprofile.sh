@@ -32,7 +32,7 @@ make hybrid=1 omp=1 bluegene=1 debug=1 "$profile"_profile=1
 ./dqsm.sh $1 $2 $3 $4 $5 $6 "$profile"_profile
 else
 #combine mode
-cp out/$1/$today/n$2p$3ppn$4t$5i$6_"$profile"_profile/"$profile"* $outdir 
+cp out/$1/$today/n$2p$3ppn$4t$5i$6_"$profile"_profile/"$profile"* $outdir
 fi
 done
 make clean hybrid=1
