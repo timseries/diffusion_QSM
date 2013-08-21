@@ -68,7 +68,7 @@ LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lmpitrace
 CPPFLAGS += -DMPI_PROFILE
 endif
 
-ifdef omp_profile
+ifdef pomp_profile
 CPPFLAGS += -g
 CPPFLAGS += -I/bgsys/ibmhpc/ppedev.hpct/include/
 LDFLAGS += -L/opt/ibmcmp/xlsmp/3.1/lib64 -lxlsmp_pomp

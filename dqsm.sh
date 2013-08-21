@@ -16,17 +16,13 @@ np="-np $3"
 bluegenedir=/bgsys
 
 #environment variables
-export HPM_OUTPUT_PROCESS=ROOT
-export HPM_SCOPE=node
-export HPM_ASC_OUTPUT=yes
-export HPM_METRICS=yes
 
 export OMP_NUM_THREADS=$5
 
 #previter="-x out41736/x_iter000925.bin"
 
 today=$(date "+%d%m%Y")
-outdir=out/$1/$today/n$2p$3ppn$4t$5i$6
+outdir=out/$1/$today/n$2p$3ppn$4t$5i$6_$7
 if [ -d $outdir ]; then
     echo "outdir exists, removing old data"
     rm -rf $outdir
