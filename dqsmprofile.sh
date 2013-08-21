@@ -27,7 +27,7 @@ for profile in mpi pomp hpm gprof
 do
 if [ $7 -eq 1 ]; then
 make clean hybrid=1
-make hybrid=1 omp=1 bluegene=1 debug=1 "$profile_profile=1"
+make hybrid=1 omp=1 bluegene=1 debug=1 "$profile"_profile=1
 #make hybrid=1 omp=1 debug=1
 ./dqsm.sh $1 $2 $3 $4 $5 $6 "$profile_profile"
 else
