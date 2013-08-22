@@ -144,7 +144,7 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
     mask[i] = (sqrt(mx[i]*mx[i] + my[i]*my[i] + mz[i]*mz[i]) >
                threshold) ? ix++ : -1;
   }
-
+  printroot("number of cylinders from modelmask:%d\n",ix);
   // GATHER X Y AND Z ARRAYS
   ncyls = ix;
   //  if (rank==0) printroot("   number cylinders = %d\n", ncyls);

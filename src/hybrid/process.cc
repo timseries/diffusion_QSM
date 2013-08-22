@@ -87,6 +87,7 @@ bool Process::Init(int argc, char** args) {
   if (!loadDeltaB()) goto exitnow;
   if (!loadMask()) goto exitnow;
   if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
+  printroot("ncyls modelmap: %d",kernel.modelmap.ncyls);
   // Adjust the dataspec using orthogonal recursive bisection 
   printroot("rank: %d",rank);
   printroot("dspec start: %d\n", dspec.start);
@@ -412,12 +413,12 @@ bool Process::FullPass() {
   for (p = 0; p < dspec.N; p++) {
     if (mask[p]) {
       FGindices[o] = p;
-      if (kernel.modelmap.mask[p] != 1) {
-        FGindicesCyl[nFGCyls]=p;
-        nFGCyls++;
-      } else {
+      if (kernel.modelmap.mask[p]==-1) {
         FGindicesSphere[nFGSpheres]=p;
         nFGSpheres++;
+      } else {
+        FGindicesCyl[nFGCyls]=p;
+        nFGCyls++;
       }
       o++;
     }
