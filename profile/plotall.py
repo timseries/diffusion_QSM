@@ -30,9 +30,9 @@ def main():
                 key=str.lower)
     hpmfiles=sorted([f for f in filenames if (f.startswith('hpm') and not(f.endswith('.viz')))],
                 key=str.lower)
-    pylab.ion()    
+#    pylab.ion()    
     omp.plotomp(indir,ompfiles)
-    hpm.plothpm(indir,hpmfiles)
+#    hpm.plothpm(indir,hpmfiles)
     mpi.plotmpi(indir,mpifiles)
     return 1
 if __name__ == "__main__":

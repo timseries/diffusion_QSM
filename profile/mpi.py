@@ -3,6 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
+import pylab
 import profile_utils as pu
 from matplotlib import cm
 

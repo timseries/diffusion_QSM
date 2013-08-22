@@ -58,7 +58,7 @@ def plotomp(indir,ompfiles):
     width=.07
 
 #do one plot for each instr_section
-    pdb.set_trace()
+#    pdb.set_trace()
     for instr_section in range(0,len(allsecdata[0])):
         ind = np.arange(len(allsecdata))
         fig = plt.figure(instr_section)
@@ -89,7 +89,7 @@ def plotomp(indir,ompfiles):
         for rect in rects:
             pu.autolabel(rect)      
 #    pdb.set_trace()
-    #pylab.ion()    
+    pylab.ion()    
     plt.show()
 #print time
     

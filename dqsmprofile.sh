@@ -24,7 +24,9 @@ else
     mkdir -p $outdir
 fi
 mkdir $outdir
-for profile in mpi pomp hpm gmon
+#gmon profiling takes too long...
+#for profile in mpi pomp hpm gmon
+for profile in mpi pomp hpm
 do
 if [ $7 -eq 1 ]; then
 make clean hybrid=1
