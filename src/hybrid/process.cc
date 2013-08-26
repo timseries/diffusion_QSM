@@ -594,17 +594,17 @@ bool Process::FullPass() {
     // Ax_b = A * x - b
     // Dx = D * x
     MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true,iteration);
-    printroot("rank: %d first multadd finish:%.3f\n", rank, MPI_Wtime());
+    // printroot("rank: %d first multadd finish:%.3f\n", rank, MPI_Wtime());
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    if (rank==0) printroot("(%ldmin %lds)", tmins, tsecs);
+    printroot("iteration %d, rank:%d (%ldmin %lds)", tmins, tsecs);
     tIterStart2 = MPI_Wtime();
 
     // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
-    printroot("rank: %d second multadd start: %.3f\n", rank, MPI_Wtime());
+    // printroot("rank: %d second multadd start: %.3f\n", rank, MPI_Wtime());
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
     printroot("rank: %d second multadd finish: %.3f\n", rank, MPI_Wtime());
           // printroot("after second  multadd....\n",p);
@@ -615,18 +615,32 @@ bool Process::FullPass() {
     tsecs = tIterEnd2 - tIterStart2;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-
+    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
+    printroot("iteration %d, rank:%d (%ldmin %lds)", tmins, tsecs);
     // Reduce AtAx_b
     tOverhead = MPI_Wtime();
 
     //if (rank==0) printroot("      reducing AtAx_b ...\n");
-    printroot("rank: %d first allreduce start: %.3f\n", rank, MPI_Wtime());
+    // printroot("rank: %d first allreduce start: %.3f\n", rank, MPI_Wtime());
+    tIterStart2 = MPI_Wtime();
     MPI_Allreduce(MPI_IN_PLACE, P->AtAx_b, P->dspec.nFG, MPI_Real, MPI_SUM, MPI_COMM_WORLD);
-    printroot("rank: %d first allreduce end: %.3f\n", rank, MPI_Wtime());
-    printroot("rank: %d second allreduce start: %.3f\n", rank, MPI_Wtime());
+    tIterEnd2 = MPI_Wtime();
+    tsecs = tIterEnd2 - tIterStart2;
+    tmins = floor(tsecs/60);
+    tsecs -= tmins*60;
+    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
+    printroot("iteration %d, rank:%d (%ldmin %lds)", tmins, tsecs);
+    // printroot("rank: %d first allreduce end: %.3f\n", rank, MPI_Wtime());
+    // printroot("rank: %d second allreduce start: %.3f\n", rank, MPI_Wtime());
+    tIterStart2 = MPI_Wtime();
     MPI_Allreduce(MPI_IN_PLACE, P->DtDx, P->dspec.nFG, MPI_Real, MPI_SUM, MPI_COMM_WORLD);
-    printroot("rank: %d second allreduce end: %.3f\n", rank, MPI_Wtime());
+    tIterEnd2 = MPI_Wtime();
+    tsecs = tIterEnd2 - tIterStart2;
+    tmins = floor(tsecs/60);
+    tsecs -= tmins*60;
+    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
+    printroot("iteration %d, rank:%d (%ldmin %lds)", tmins, tsecs);
+    // printroot("rank: %d second allreduce end: %.3f\n", rank, MPI_Wtime());
     tsecs = MPI_Wtime() - tOverhead;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
