@@ -916,7 +916,7 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
           rx = px - ox;
           _rx = abs(rx);
           
-          if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
+          if (1) {//(_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
             // Linear system
             // mix = kernel.modelmap.mask[P->FGindices[o]];
             mix = kernel.modelmap.mask[P->FGindicesUniform[o]];

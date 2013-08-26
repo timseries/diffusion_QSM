@@ -284,7 +284,7 @@ Real Kernel::Get(int x, int y, int z, int o) {
 
 Real Kernel::GetCyl(int mix, int x, int y, int z) {
   Real rc = x*modelmap.x[mix] + y*modelmap.y[mix] + z*modelmap.z[mix];
-  if (0) {//(fabs(rc) <= CYL2alpha) {
+  if (fabs(rc) <= CYL2alpha) {
     Real r2 = 1/(x*x + y*y + z*z - rc*rc);
     Real rg = x*gx[mix] + y*gy[mix] + z*gz[mix];
 
