@@ -599,7 +599,7 @@ bool Process::FullPass() {
     tsecs = tIterEnd1 - tIterStart1;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    printroot("first multadd iteration %d, rank:%d (%ldmin %lds) \n", rank, iteration, tmins, tsecs);
+    printroot("first multadd iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     tIterStart2 = MPI_Wtime();
 
     // AtAx_b = A' * Ax_b
@@ -616,7 +616,7 @@ bool Process::FullPass() {
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
     // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-    printroot("second multadd iteration %d, rank:%d (%ldmin %lds) \n", rank, iteration, tmins, tsecs);
+    printroot("second multadd iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     // Reduce AtAx_b
     tOverhead = MPI_Wtime();
 
@@ -629,7 +629,7 @@ bool Process::FullPass() {
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
     // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-    printroot("first allreduce iteration %d, rank:%d (%ldmin %lds) \n", rank, iteration, tmins, tsecs);
+    printroot("first allreduce iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     // printroot("rank: %d first allreduce end: %.3f\n", rank, MPI_Wtime());
     // printroot("rank: %d second allreduce start: %.3f\n", rank, MPI_Wtime());
     tIterStart2 = MPI_Wtime();
@@ -639,7 +639,7 @@ bool Process::FullPass() {
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
     // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-    printroot("second allreduce iteration %d, rank:%d (%ldmin %lds) \n", rank, iteration, tmins, tsecs);
+    printroot("second allreduce iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     // printroot("rank: %d second allreduce end: %.3f\n", rank, MPI_Wtime());
     tsecs = MPI_Wtime() - tOverhead;
     tmins = floor(tsecs/60);
