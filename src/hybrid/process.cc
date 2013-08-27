@@ -859,11 +859,15 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     }
     int index1=0;
     int index2=0;
+    int numcyls=0;
+    int numspheres=0;
 #ifdef USE_OPENMP
     if (rank==0 && iteration==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
     if (rank==0 && iteration==0) printroot("Max threads: %d\n", omp_get_max_threads());
+    chunk=P->dspec.nFG/omp_get_max_threads();
+    if (rank==0 && iteration==0) printroot("Chunk size: %d\n", chunk);
 #endif
-#pragma omp parallel shared(nthreads,chunk,dir) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix,index1,index2) if (OPENMP)
+#pragma omp parallel shared(nthreads,chunk,dir) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix,index1,index2,numcyls,numspheres) if (OPENMP)
     {
 #ifdef USE_OPENMP
       tid = omp_get_thread_num();
@@ -874,18 +878,25 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         // printf("Starting  A*x-b using %d threads\n",nthreads);
         // printf("Initializing matrices on thread %d: \n", tid);
 	//      }
+        numspheres=0;
+        numcyls=0;
 #endif
-#pragma omp for
+#pragma omp for schedule(static, chunk)
     for (o = 0; o < P->dspec.nFG; o++) {
+      mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
+      if (mix==-1){
+        numspheres++;
+      } else {
+        numcyls++;
+      }
       if ((P->x[o] and dir) or (!dir)) {
-
+        
         // oz = P->FGindices[o] / P->dspec.zoffset;
         // oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
         // ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
         oz = P->FGindicesUniform[o] / P->dspec.zoffset;
         oy = (P->FGindicesUniform[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
         ox = P->FGindicesUniform[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
-
         pz = P->dspec.start / P->dspec.zoffset;
         py = (P->dspec.start - pz * dspec.zoffset) / P->dspec.yoffset;
         px = P->dspec.start - py * P->dspec.yoffset - pz * P->dspec.zoffset - 1;			    
@@ -916,7 +927,7 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
           rx = px - ox;
           _rx = abs(rx);
           
-          if (1) {//(_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
+          if (_rx <= kernel.halfsize && _ry <= kernel.halfsize && _rz <= kernel.halfsize) {
             // Linear system
             // mix = kernel.modelmap.mask[P->FGindices[o]];
             mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
@@ -955,6 +966,9 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         result_fidelity[p] -= addend[p];
       }
     }//end if (dir)
+    if (rank==0) printroot("tid:%d numcyls:%d numspheres:%d\n", tid, numcyls, numspheres);
+    numcyls=0;
+    numspheres=0;
     }//end omp parallel section
 #endif
 
