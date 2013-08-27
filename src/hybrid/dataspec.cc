@@ -164,12 +164,12 @@ void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* 
   int data_div=data_start;
   // printrootl("dataend: %d, datastart: %d, workend: %d, workstart: %d\n", data_end, data_start, workmatrix[data_end],workmatrix[data_start]);
   printroot("data_start: %d, data_end: %d, orb_start: %d, orb_end: %d, workdiv: %d\n", data_start, data_end, orb_start, orb_end, workdiv);
-  while (workmatrix[data_div]-workmatrix[data_start] < workdiv) {
+  while (workmatrix[data_div]-workmatrix[data_start] <= workdiv) {
     data_div++;
   }
   if (orb_start==orb_end) {
     orb_divisions[orb_start]=data_div;
-    if (rank==0) printroot("orb_divisions[orb_start]: %d\n", orb_divisions[orb_start]);
+    if (rank==0) printroot("finished this recurse, orb_start: %d, orb_divisions[orb_start]: %d\n", orb_start,orb_divisions[orb_start]);
   } else {
     int orb_div=(orb_start+orb_end)/2;
     orb_divisions[orb_div]=data_div;
