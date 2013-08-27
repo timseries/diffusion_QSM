@@ -168,12 +168,12 @@ void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* 
     data_div++;
   }
   if (orb_start==orb_end) {
-    orb_divisions[orb_start]=data_div;
     if (rank==0) printroot("finished this recurse, orb_start: %d, orb_divisions[orb_start]: %d\n", orb_start,orb_divisions[orb_start]);
+    orb_divisions[orb_start]=data_div;
   } else {
     int orb_div=(orb_start+orb_end)/2;
     orb_divisions[orb_div]=data_div;
-    ORB(data_start,data_div,orb_start,orb_div-1,workmatrix);
-    ORB(data_div,data_end,orb_div+1,orb_end,workmatrix);
+    ORB(data_start,data_div,orb_start,orb_div,workmatrix);
+    ORB(data_div,data_end,orb_div,orb_end,workmatrix);
   }
 }
