@@ -89,7 +89,7 @@ bool Process::Init(int argc, char** args) {
   if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
   printroot("ncyls modelmap: %d",kernel.modelmap.ncyls);
   // Adjust the dataspec using orthogonal recursive bisection 
-  printroot("rank: %d",rank);
+  printroot("rank: %d\n",rank);
   printroot("dspec start: %d\n", dspec.start);
   printroot("dspec end: %d\n", dspec.end);
 
@@ -233,8 +233,8 @@ bool Process::loadDeltaB() {
   MPI_File_close(&fptr);
 
   // set offsets
-  dspec.yoffset = dspec.size[0];
-  dspec.zoffset = dspec.size[0] * dspec.size[1];
+  /* dspec.yoffset = dspec.size[0]; */
+  /* dspec.zoffset = dspec.size[0] * dspec.size[1]; */
 
   if (rank==0) printroot("   size = %d %d %d\n", dspec.size[0],
             dspec.size[1], dspec.size[2]);
@@ -901,13 +901,14 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         py = (P->dspec.start - pz * dspec.zoffset) / P->dspec.yoffset;
         px = P->dspec.start - py * P->dspec.yoffset - pz * P->dspec.zoffset - 1;			    
 
+        rx = px - ox;
         ry = py - oy;
         rz = pz - oz;
 
         _rx = abs(rx);
         _ry = abs(ry);
         _rz = abs(rz);
-        
+//iterate through the elements of this part of the data...convolution
         for (p = P->dspec.start; p < P->dspec.end; p++) {
           index1 = dir ? o : p - P->dspec.start;
           index2 = dir ? p - P->dspec.start : o;
