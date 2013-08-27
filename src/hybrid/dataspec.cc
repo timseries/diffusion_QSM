@@ -145,13 +145,14 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
 void DataSpec::PartitionByORB(int* workmatrix) {
   // printroot("workend: %d, workstart: %d\n", workmatrix[N],workmatrix[0]);
   ORB(0,N-1,0,mpi_world_size-2,workmatrix);
+  // ORB(0,N-1,0,32-2,workmatrix);
   if (rank==0) {
     start=0;
   } else {
     start=orb_divisions[rank-1]+1;
   }
   if (rank==(mpi_world_size-1)) {
-    end=N;
+    end=N-1;
   } else {
     end=orb_divisions[rank];
   }
@@ -163,17 +164,24 @@ void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* 
   //find the index where the work is divided in half
   int data_div=data_start;
   // printrootl("dataend: %d, datastart: %d, workend: %d, workstart: %d\n", data_end, data_start, workmatrix[data_end],workmatrix[data_start]);
-  printroot("data_start: %d, data_end: %d, orb_start: %d, orb_end: %d, workdiv: %d\n", data_start, data_end, orb_start, orb_end, workdiv);
-  while (workmatrix[data_div]-workmatrix[data_start] <= workdiv) {
+  // if (rank==1) printroot("data_start: %d, data_end: %d, orb_start: %d, orb_end: %d, workdiv: %d\n", data_start, data_end, orb_start, orb_end, workdiv);
+//find the midpoint of the work
+  while (workmatrix[data_div]-workmatrix[data_start] < workdiv) {
     data_div++;
   }
   if (orb_start==orb_end) {
-    if (rank==0) printroot("finished this recurse, orb_start: %d, orb_divisions[orb_start]: %d\n", orb_start,orb_divisions[orb_start]);
     orb_divisions[orb_start]=data_div;
+    if (rank==1) printroot("finished index: %d, data_div: %d, data_start: %d, data_end: %d\n", orb_start, data_div, data_start, data_end);
   } else {
-    int orb_div=(orb_start+orb_end)/2;
-    orb_divisions[orb_div]=data_div;
-    ORB(data_start,data_div,orb_start,orb_div,workmatrix);
-    ORB(data_div,data_end,orb_div,orb_end,workmatrix);
+    int orb_divfl=floor((orb_start+orb_end)/2.0);
+    int orb_divcl=ceil((orb_start+orb_end)/2.0);
+    // orb_divisions[orb_div]=data_div;
+    ORB(data_start,data_div,orb_start,orb_divfl,workmatrix);
+    ORB(data_div,data_end,orb_divcl,orb_end,workmatrix);
   }
 }
+
+
+
+
+
