@@ -169,7 +169,7 @@ void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* 
   }
   if (orb_start==orb_end) {
     orb_divisions[orb_start]=data_div;
-    printroot("orb_divisions[orb_start]: %d, data_div: %d\n", orb_divisions[orb_start], data_div);
+    if (rank==0) printroot("orb_divisions[orb_start]: %d\n", orb_divisions[orb_start]);
   } else {
     int orb_div=(orb_start+orb_end)/2;
     orb_divisions[orb_div]=data_div;
