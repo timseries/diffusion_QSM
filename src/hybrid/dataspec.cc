@@ -69,7 +69,6 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   int ElsPerProc=0;
   double bmag=0;
   int *workmatrix = NULL;
-  int px,pypz;
   this->mpi_world_size=mpi_world_size;
   this->rank=rank;
   N = (int) buf[0];
@@ -91,7 +90,7 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   //orb arrray divisions based on the intialized world size
   orb_divisions=(int*) calloc(mpi_world_size-2, sizeof(int));
 
-  if (0) {
+  if (1) {
     
     //set the start and finish using continguous, even-sized blocks
   ElsPerProc = N / mpi_world_size;
@@ -139,8 +138,13 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
 
 //do orthognonal recursive bisection
   PartitionByORB(workmatrix);
+  free(workmatrix);
   }
   range=end-start;
+printroot("rank: %d finished dspec create with end: %d start: %d range: %d\n",rank,end,start,range);
+//for (int j=0;j<31;j++){
+//printroot("orb_divisions[%d]: %d\n",j,orb_divisions[j]);
+//}
 }
 void DataSpec::PartitionByORB(int* workmatrix) {
   // printroot("workend: %d, workstart: %d\n", workmatrix[N],workmatrix[0]);
@@ -167,10 +171,10 @@ void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* 
   // if (rank==1) printroot("data_start: %d, data_end: %d, orb_start: %d, orb_end: %d, workdiv: %d\n", data_start, data_end, orb_start, orb_end, workdiv);
 //find the midpoint of the work
   while (workmatrix[data_div]-workmatrix[data_start] < workdiv) {
-    data_div++;
+    data_div+=32;
   }
   if (orb_start==orb_end) {
-    // if (rank==0) orb_divisions[orb_start]=data_div;
+     orb_divisions[orb_start]=data_div;
     // printroot("rank %d finished index: %d, data_div: %d, data_start: %d, data_end: %d\n", rank, orb_start, data_div, data_start, data_end);
   } else {
     int orb_divfl=floor((orb_start+orb_end)/2.0);

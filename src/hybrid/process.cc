@@ -1,3 +1,4 @@
+
 // Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
@@ -85,15 +86,21 @@ bool Process::Init(int argc, char** args) {
   myout.Init(arghandler, rank, size);
   // Load the data, mask, and create the model
   if (!loadDeltaB()) goto exitnow;
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank==0) printroot("everyone finished loading deltab\n");
   if (!loadMask()) goto exitnow;
+//MPI_Barrier(MPI_COMM_WORLD);
+if (rank==0) printroot("everyone finished getting the fg/bg mask\n");
   if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
   printroot("ncyls modelmap: %d",kernel.modelmap.ncyls);
   // Adjust the dataspec using orthogonal recursive bisection 
   printroot("rank: %d\n",rank);
   printroot("dspec start: %d\n", dspec.start);
   printroot("dspec end: %d\n", dspec.end);
-
+//MPI_Barrier(MPI_COMM_WORLD);
+  if (rank==0) printroot("everyone finished creating the modelmap\n");
   myout.DistrArray(deltab, dspec.range, 3, dspec.size, "deltab");
+//MPI_Barrier(MPI_COMM_WORLD);
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
   // initialize chi vector
   chi = (Real*) calloc(dspec.N, sizeof(Real));
@@ -164,7 +171,7 @@ void Process::StartMPI(int argc, char** args) {
 bool Process::loadDeltaB() {
   // reads in DeltaB to a vector
   char *filepath;
-  int err;
+  int err=0;
   MPI_File fptr;
   MPI_Status status;
   MPI_Offset offset, disp;
@@ -184,10 +191,10 @@ bool Process::loadDeltaB() {
   err = MPI_File_open(MPI_COMM_SELF, filepath,
                       MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
   if (err) {
-    if (rank==0) printroot("Could not open file");
+    printroot("rank:%d Could not open file\n", rank);
     return false;
   }
-
+  if (rank==0) printroot("error status from file open on proc 0: %d\n",err);
   // check endianness
   checkEndianness(fptr, flgByteSwap);
 
@@ -206,31 +213,44 @@ bool Process::loadDeltaB() {
   if (rank==0) printroot("Creating dataspec...\n");
   dspec.Create(buf,rank,size);
   //printall("[%d] start = %d end = %d\n", rank, dspec.start, dspec.end);
-  if (rank==0) printroot("Allocating deltaB array portion...\n");
+  //printroot("rank:%d , barrier waiting for the rest of the processes to sync\n", rank);
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank==0) printroot("everyone finsished creating the dspec...\n");
+//  printroot("rank:%d , Allocating deltaB array portion...\n", rank);
   deltab = (Real*) calloc(dspec.range, sizeof(Real));
-  if (rank==0) printroot("Finding start of deltab...\n");
-  MPI_File_seek(fptr, dspec.start*sizeof(double), MPI_SEEK_CUR);
+  //printroot("Finding start of deltab...\n");
+  err=MPI_File_seek(fptr, dspec.start*sizeof(double), MPI_SEEK_CUR);
+  if (err) printroot("rank:%d could't seek file, error:%d", rank, err);
 
   if (sizeof(Real) == sizeof(double)) {
-    MPI_File_read(fptr, deltab, dspec.range, MPI_DOUBLE, &status);
+    err=MPI_File_read(fptr, deltab, dspec.range, MPI_DOUBLE, &status);
+	  if (err) printroot("rank:%d could't read file, error:%d", rank, err);
     if (flgByteSwap) {
       byteswap((char*)deltab, dspec.range, sizeof(double));
     }
   } else {
-    if (rank==0) printroot("Casting temporary buffer into double...\n");
+   //printroot("rank:%d , Casting temporary buffer into double...\n", rank);
+   //printroot("rank:%d , dspec.range: %d\n", rank, dspec.range);
     castbuf = (double*) calloc(dspec.range, sizeof(double));
-    MPI_File_read(fptr, castbuf, dspec.range, MPI_DOUBLE, &status);
+   //printroot("rank:%d , reading mpi file\n", rank);
+   err=MPI_File_read(fptr, castbuf, dspec.range, MPI_DOUBLE, &status);
+	  if (err) printroot("rank:%d could't read file, error:%d", rank, err);
     if (flgByteSwap) {
       byteswap((char*)castbuf, dspec.range, sizeof(double));
     }
-    if (rank==0) printroot("Copying temporary buffer into deltab...\n");
+MPI_Barrier(MPI_COMM_WORLD);	
+ if (rank==0) printroot("everyone read the mpi file and byteswapped it\n");
+//    printroot("rank:%d, Copying temporary buffer into deltab...\n",rank);
     for (int i = 0; i < dspec.range; i++)
       deltab[i] = (float) castbuf[i];
     free(castbuf);
   }
-
-  // Close file pointer
-  MPI_File_close(&fptr);
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank!=0) err=MPI_File_close(&fptr);
+  if (err) printroot("rank:%d could't close file, error:%d", rank, err);
+  MPI_Barrier(MPI_COMM_WORLD);
+  if (rank==0) err=MPI_File_close(&fptr);
+  if (err) printroot("rank:%d could't close file, error:%d", rank, err);
 
   // set offsets
   /* dspec.yoffset = dspec.size[0]; */
@@ -239,9 +259,10 @@ bool Process::loadDeltaB() {
   if (rank==0) printroot("   size = %d %d %d\n", dspec.size[0],
             dspec.size[1], dspec.size[2]);
   if (rank==0) printroot("   number of elements = %d\n", dspec.N);
-
+  printroot("rank: %d, dspec.start: %d, dspec.end: %d \n", rank, dspec.start, dspec.end);
+//  printroot("rank: %d closing filepath\n",rank);
   free(filepath);
-
+//  printroot("rank: %d filepath closed\n",rank);
   return true;
 }
 
@@ -260,31 +281,35 @@ bool Process::loadMask() {
     return false;
   }
   if (rank==0) printroot("   file: %s\n", filepath);
+
   mask = (bool*) calloc(dspec.N, sizeof(bool));
   // open file for reading
+//  MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) {
+    printroot("trying to read mask in rank 0...\n");
     err = MPI_File_open(MPI_COMM_SELF, filepath,
                         MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
     if (err) {
       if (rank==0) printroot("Could not open mask file");
       return false;
     }
-
+    
     // check endianness
     checkEndianness(fptr, flgByteSwap);
 
+    printroot("endiannesschecked 0...\n");
     // check version
     checkVersion(fptr, flgByteSwap);
-
+    //printroot("attempting to read mask file\n");
     // read in header
     MPI_File_read(fptr, buf, 4, MPI_DOUBLE, MPI_STATUS_IGNORE);
-
+    printroot("read finished\n");
     // byte swap header if required
     if (flgByteSwap) byteswap((char*)buf,4,sizeof(double));
 
     // Check parameters match
     if (dspec.N != buf[0]) {
-      if (rank==0) printroot("Number of elements in Mask does not match DeltaB");
+      printroot("Number of elements in Mask does not match DeltaB");
       return false;}
     if (dspec.size[0] != buf[1]) {
       if (rank==0) printroot("Size of first dimension of Mask does not match DeltaB");
@@ -298,9 +323,14 @@ bool Process::loadMask() {
 
     MPI_File_read(fptr, mask, dspec.N, MPI_CHAR, MPI_STATUS_IGNORE);
     MPI_File_close(&fptr);
+ 
 
   }
-  MPI_Bcast(mask, dspec.N, MPI_CHAR, 0, MPI_COMM_WORLD);
+	  MPI_Bcast(mask, dspec.N, MPI_CHAR, 0, MPI_COMM_WORLD);
+//	printroot("rank:%d , broadcast\n",rank);
+ // MPI_Barrier(MPI_COMM_WORLD);
+//if (rank==0) printroot("ready to broadcast from rank 0");
+  if (rank==0)	printroot("rank:%d, broadcast finished\n",rank);
   //TODO(timseries): do this somewhere else
   dspec.nBG = 0; dspec.nFG = 0;
   for (int i=0; i<dspec.N; i++) {
