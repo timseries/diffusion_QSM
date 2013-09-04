@@ -14,7 +14,7 @@ model="-model m"
 alpha="-alpha 0.5"
 np="-np $3"
 bluegenedir=/bgsys
-
+vlscidir=/vlsci
 #environment variables
 
 export OMP_NUM_THREADS=$5
@@ -34,9 +34,8 @@ mkdir $outdir
 out="-out $outdir"
 
 #cross platform support
-echo $bluegenedir
-if [ -d $bluegenedir ]; then
-    echo "we're making/running on bluegene"
+if [ -d $vlscidir ]; then
+    echo "we're making/running on a vlsci machine"
 #copy the sbatch template to the output directory
     cp ./dqsm.sbatch.template $outdir/dqsm.sbatch
 #modify the sbatch file
@@ -52,7 +51,17 @@ if [ -d $bluegenedir ]; then
     echo "model=\"$model\"" >> $outdir/dqsm.sbatch
     echo "alpha=\"$alpha\"" >> $outdir/dqsm.sbatch
     echo "" >> $outdir/dqsm.sbatch
-    echo "time srun --ntasks-per-node="$4" \$executable \$model \$data \$mask \$modelmap \$out \$maxiters \$previter \$alpha" >> $outdir/dqsm.sbatch
+    if [ -d $bluegenedir ]; then
+	echo "we're making/running on bluegene avoca"
+	echo "time srun --ntasks-per-node="$4" \$executable \$model \$data \$mask \$modelmap \$out \$maxiters \$previter \$alpha" >> $outdir/dqsm.sbatch
+    else
+	echo "we're making/running on another cluster (barcoo), add the --ntasks flag"
+	ncores=`expr $4 \\* $2`
+	echo "#SBATCH --ntasks="$ncores >> $outdir/dqsm.sbatch
+	echo "#SBATCH -p main" >> $outdir/dqsm.sbatch
+	echo "$ncores"
+	echo "mpirun  $np \$executable \$model \$data \$mask \$modelmap \$out \$maxiters \$previter \$alpha" >> $outdir/dqsm.sbatch
+    fi
 #copy the executable to the output directory
     cp $executable $outdir
 #change to that directory
@@ -60,7 +69,8 @@ if [ -d $bluegenedir ]; then
 #sbatch call
     sbatch dqsm.sbatch
 else
-#run locally
+#run locally on a single machine
+    echo "we're making/running on a standalone machine"
     echo "mpirun $np $executable $model $data $mask $modelmap $out $maxiters $alpha"
     mpirun $np $executable $model $data $mask $modelmap $out $maxiters $alpha
 fi
