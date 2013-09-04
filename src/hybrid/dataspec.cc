@@ -102,16 +102,138 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   end = start + ElsPerProc +
     ((rank < N - ElsPerProc * mpi_world_size) ? 1 : 0);
 //hardcode some test values to see if this breaks on proc 0
-  if (rank==0) {
-    start=0;
-    end=52382;
+  switch (rank) {
+    case 0:
+        start=0;
+        end=52832;
+        break;
+    case 1:
+        start=52832;
+        end=128256;
+        break;
+    case 2:
+        start=128256;
+        end=181824;
+        break;
+    case 3:
+        start=181824;
+        end=227008;
+        break;
+    case 4:
+        start=227008;
+        end=265984;
+        break;
+    case 5:
+        start=265984;
+        end=300192;
+        break;
+    case 6:
+        start=300192;
+        end=332224;
+        break;
+    case 7:
+        start=332224;
+        end=362688;
+        break;
+    case 8:
+        start=362688;
+        end=390944;
+        break;
+    case 9:
+        start=390944;
+        end=418368;
+        break;
+    case 10:
+        start=418368;
+        end=444064;
+        break;
+    case 11:
+        start=444064;
+        end=469376;
+        break;
+    case 12:
+        start=469376;
+        end=494432;
+        break;
+    case 13:
+        start=494432;
+        end=519072;
+        break;
+    case 14:
+        start=519072;
+        end=543104;
+        break;
+    case 15:
+        start=543104;
+        end=590464;
+        break;
+    case 16:
+        start=590464;
+        end=614208;
+        break;
+    case 17:
+        start=614208;
+        end=638304;
+        break;
+    case 18:
+        start=638304;
+        end=662912;
+        break;
+    case 19:
+        start=662912;
+        end=687904;
+        break;
+    case 20:
+        start=687904;
+        end=713184;
+        break;
+    case 21:
+        start=713184;
+        end=738880;
+        break;
+    case 22:
+        start=738880;
+        end=766368;
+        break;
+    case 23:
+        start=766368;
+        end=794560;
+        break;
+    case 24:
+        start=794560;
+        end=825024;
+        break;
+    case 25:
+        start=825024;
+        end=857088;
+        break;
+    case 26:
+        start=857088;
+        end=891296;
+        break;
+    case 27:
+        start=891296;
+        end=930208;
+        break;
+    case 28:
+        start=930208;
+        end=975424;
+        break;
+    case 29:
+        start=975424;
+        end=1029088;
+        break;
+    case 30:
+        start=1029088;
+        end=1104384;
+        break;
+    case 31:
+        start=1104384;
+        end=1157100;
+        break;
+    default:
+      printroot("rank out of bounds\n");
   }
-
-  if (rank==1) {
-    start=52382;
-    end=72320;
-  }
-
   } else {
     workmatrix=(int*) calloc(N, sizeof(int));
     int rx=0;
