@@ -56,7 +56,7 @@ if [ -d $vlscidir ]; then
 	echo "time srun --ntasks-per-node="$4" \$executable \$model \$data \$mask \$modelmap \$out \$maxiters \$previter \$alpha" >> $outdir/dqsm.sbatch
     else
 	echo "we're making/running on another cluster (barcoo), add the --ntasks flag"
-	ncores=`expr $4 \\* $2`
+	ncores=`expr $5 \\* $2`
 	echo "#SBATCH --ntasks="$ncores >> $outdir/dqsm.sbatch
 	echo "#SBATCH -p main" >> $outdir/dqsm.sbatch
 	echo "$ncores"
