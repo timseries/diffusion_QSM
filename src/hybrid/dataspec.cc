@@ -101,6 +101,17 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   }
   end = start + ElsPerProc +
     ((rank < N - ElsPerProc * mpi_world_size) ? 1 : 0);
+//hardcode some test values to see if this breaks on proc 0
+  if (rank==0) {
+    start=0;
+    end=52382;
+  }
+
+  if (rank==1) {
+    start=52382;
+    end=72320;
+  }
+
   } else {
     workmatrix=(int*) calloc(N, sizeof(int));
     int rx=0;
@@ -153,10 +164,10 @@ void DataSpec::PartitionByORB(int* workmatrix) {
   if (rank==0) {
     start=0;
   } else {
-    start=orb_divisions[rank-1]+1;
+    start=orb_divisions[rank-1];
   }
   if (rank==(mpi_world_size-1)) {
-    end=N-1;
+    end=N;
   } else {
     end=orb_divisions[rank];
   }
