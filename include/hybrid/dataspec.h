@@ -41,8 +41,8 @@ class DataSpec {
   virtual ~DataSpec();
 
   void Create(double* buf,int rank, int size);
-  void PartitionByORB(int* workmatrix);
-  void ORB(int data_start, int data_end, int orb_start,int orb_end,int* workmatrix);
+  void PartitionByORB();
+  void ORB(int data_start, int data_end, int orb_start,int orb_end);
   int size[3];  // data size
   int N; // number of foxelsdelmap
   int yoffset;
@@ -53,6 +53,7 @@ class DataSpec {
   double B0;
   double bhat[3];
   double caxis[3];
+  int* workmatrix;
   int nBG;
   int nFG;
   unsigned start;

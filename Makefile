@@ -43,7 +43,7 @@ ifdef debug
 #CPPFLAGS +=  -Wall -g
 CPPFLAGS +=  -g
 else
-CPPFLAGS +=  -O3 
+CPPFLAGS +=  -O3
 endif 
 
 ifdef bluegene

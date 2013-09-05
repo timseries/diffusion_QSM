@@ -244,12 +244,9 @@ MPI_Barrier(MPI_COMM_WORLD);
     for (int i = 0; i < dspec.range; i++)
       deltab[i] = (float) castbuf[i];
     free(castbuf);
-  }
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (rank!=0) err=MPI_File_close(&fptr);
-  if (err) printroot("rank:%d could't close file, error:%d", rank, err);
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (rank==0) err=MPI_File_close(&fptr);
+}
+MPI_Barrier(MPI_COMM_WORLD);
+  err=MPI_File_close(&fptr);
   if (err) printroot("rank:%d could't close file, error:%d", rank, err);
 
   // set offsets

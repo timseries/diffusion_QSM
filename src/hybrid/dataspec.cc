@@ -68,10 +68,11 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   //buf is a file buffer created by loadDeltaB
   int ElsPerProc=0;
   double bmag=0;
-  int *workmatrix = NULL;
   this->mpi_world_size=mpi_world_size;
   this->rank=rank;
   N = (int) buf[0];
+  workmatrix = (int*) calloc(N, sizeof(int));
+
   size[0] = (int) buf[1];
   size[1] = (int) buf[2];
   size[2] = (int) buf[3];
@@ -90,7 +91,7 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   //orb arrray divisions based on the intialized world size
   orb_divisions=(int*) calloc(mpi_world_size-2, sizeof(int));
 
-  if (1) {
+  if (0) {
     
     //set the start and finish using continguous, even-sized blocks
   ElsPerProc = N / mpi_world_size;
@@ -102,6 +103,7 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   end = start + ElsPerProc +
     ((rank < N - ElsPerProc * mpi_world_size) ? 1 : 0);
 //hardcode some test values to see if this breaks on proc 0
+/*
   switch (rank) {
     case 0:
         start=0;
@@ -233,9 +235,9 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
         break;
     default:
       printroot("rank out of bounds\n");
-  }
-  } else {
-    workmatrix=(int*) calloc(N, sizeof(int));
+  } */
+ } else {
+    this->workmatrix=(int*) calloc(N, sizeof(int));
     int rx=0;
     int ry=0;
     int rz=0;
@@ -264,14 +266,14 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
       if (p==0) {
         reference=distance_to_center;
       }
-      workmatrix[p]=prevworkmatrix+abs(reference-distance_to_center);
-      prevworkmatrix=workmatrix[p];
+      this->workmatrix[p]=prevworkmatrix+abs(reference-distance_to_center);
+      prevworkmatrix=this->workmatrix[p];
       // printroot("workmatrix[]]: %d\n",workmatrix[p]);
     }
 
 //do orthognonal recursive bisection
-  PartitionByORB(workmatrix);
-  free(workmatrix);
+  PartitionByORB();
+//  free(workmatrix);
   }
   range=end-start;
 printroot("rank: %d finished dspec create with end: %d start: %d range: %d\n",rank,end,start,range);
@@ -279,9 +281,18 @@ printroot("rank: %d finished dspec create with end: %d start: %d range: %d\n",ra
 //printroot("orb_divisions[%d]: %d\n",j,orb_divisions[j]);
 //}
 }
-void DataSpec::PartitionByORB(int* workmatrix) {
+//void DataSpec::PartitionByORB(int* workmatrix) {
+void DataSpec::PartitionByORB() {
   // printroot("workend: %d, workstart: %d\n", workmatrix[N],workmatrix[0]);
-  ORB(0,N-1,0,mpi_world_size-2,workmatrix);
+//  ORB(0,N-1,0,mpi_world_size-2,workmatrix);
+if (rank==0){
+   start=0;
+   end=52832;
+} else if (rank==21) {
+   start=713184;
+   end=738880;
+} else {
+  ORB(0,N-1,0,mpi_world_size-2);
   // ORB(0,N-1,0,32-2,workmatrix);
   if (rank==0) {
     start=0;
@@ -294,27 +305,34 @@ void DataSpec::PartitionByORB(int* workmatrix) {
     end=orb_divisions[rank];
   }
 }
-void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* workmatrix) {
+}
+//void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end,int* workmatrix) {
+void DataSpec::ORB(int data_start, int data_end, int orb_start,int orb_end) {
 
   //recursively partition the data
-  int workdiv=(workmatrix[data_end]-workmatrix[data_start])/2;
+  int workdiv=(this->workmatrix[data_end]-this->workmatrix[data_start])/2;
   //find the index where the work is divided in half
   int data_div=data_start;
   // printrootl("dataend: %d, datastart: %d, workend: %d, workstart: %d\n", data_end, data_start, workmatrix[data_end],workmatrix[data_start]);
   // if (rank==1) printroot("data_start: %d, data_end: %d, orb_start: %d, orb_end: %d, workdiv: %d\n", data_start, data_end, orb_start, orb_end, workdiv);
 //find the midpoint of the work
-  while (workmatrix[data_div]-workmatrix[data_start] < workdiv) {
+  while (this->workmatrix[data_div]-this->workmatrix[data_start] < workdiv) {
     data_div+=32;
+    if (data_div >= N) printroot("index out of bounds here\n");
   }
   if (orb_start==orb_end) {
-     orb_divisions[orb_start]=data_div;
-    // printroot("rank %d finished index: %d, data_div: %d, data_start: %d, data_end: %d\n", rank, orb_start, data_div, data_start, data_end);
+    orb_divisions[orb_start]=data_div;
+    if (rank==1) printroot("rank %d finished index: %d, data_div: %d, data_start: %d, data_end: %d\n", rank, orb_start, data_div, data_start, data_end);
+    return;
   } else {
     int orb_divfl=floor((orb_start+orb_end)/2.0);
     int orb_divcl=ceil((orb_start+orb_end)/2.0);
     // orb_divisions[orb_div]=data_div;
-    ORB(data_start,data_div,orb_start,orb_divfl,workmatrix);
-    ORB(data_div,data_end,orb_divcl,orb_end,workmatrix);
+//    ORB(data_start,data_div,orb_start,orb_divfl,workmatrix);
+    ORB(data_start,data_div,orb_start,orb_divfl);
+//    ORB(data_div,data_end,orb_divcl,orb_end,workmatrix);
+    ORB(data_div,data_end,orb_divcl,orb_end);
+    return;
   }
 }
 
