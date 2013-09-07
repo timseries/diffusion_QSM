@@ -50,6 +50,7 @@ class DataSpec {
   int mpi_world_size; //!< Brief number of processes, used for splitting up data
   int rank; //!< Brief the rank of the process which has this dataspec
   int* orb_divisions; //!< Brief array of divisions from orb algorithm
+  int orb_divisions_size; //!< Size of the array orb_dvisions
   double B0;
   double bhat[3];
   double caxis[3];
