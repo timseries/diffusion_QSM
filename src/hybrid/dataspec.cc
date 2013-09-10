@@ -72,7 +72,7 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   this->mpi_world_size=mpi_world_size;
   this->rank=rank;
   N = (int) buf[0];
-  workmatrix = (int*) calloc(N, sizeof(int));
+  this->workmatrix = (int*) calloc(N, sizeof(int));
 
   size[0] = (int) buf[1];
   size[1] = (int) buf[2];
@@ -94,8 +94,8 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   bhat[0] /=bmag;
   bhat[1] /=bmag;
   bhat[2] /=bmag;
-  orb_divisions_size=mpi_world_size-2;
-  orb_divisions=(int*) calloc(orb_divisions_size, sizeof(int));
+  this->orb_divisions_size=mpi_world_size-2;
+  this->orb_divisions=(int*) calloc(this->orb_divisions_size, sizeof(int));
 
   if (0) {
     
@@ -109,7 +109,6 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   end = start + ElsPerProc +
     ((rank < N - ElsPerProc * mpi_world_size) ? 1 : 0);
  } else {
-    workmatrix=(int*) calloc(N, sizeof(int));
     int rx=0;
     int ry=0;
     int rz=0;
@@ -141,10 +140,8 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
       prevworkmatrix=workmatrix[p];
     }
 
-  // PartitionByORB();
+  PartitionByORB();
   }
-  start=0;
-  end=N;
   range=end-start;
 }
 void DataSpec::PartitionByORB() {
@@ -154,21 +151,21 @@ void DataSpec::PartitionByORB() {
   int orb_start=0;
   int orb_divisions_index=0;
   for (int orb_end=0; orb_end < N; orb_end++) {
-    if ((workmatrix[orb_end]-workmatrix[orb_start])>=average_process_work) {
-      if (orb_divisions_index>orb_divisions_size) {
-        printroot("too many orb divisions created\n");
-        break;
-      }  
-      orb_divisions[orb_divisions_index]=orb_end;
-      orb_divisions_index++;
-      orb_start=orb_end;
-    }
+    // if ((workmatrix[orb_end]-workmatrix[orb_start])>=average_process_work) {
+    //   if (orb_divisions_index>orb_divisions_size) {
+    //     printroot("too many orb divisions created\n");
+    //     break;
+    //   }  
+    //   orb_divisions[orb_divisions_index]=orb_end;
+    //   orb_divisions_index++;
+    //   orb_start=orb_end;
+    // }
   }
 
   if (rank==0) {
     start=0;
   } else {
-    start=orb_divisions[rank-1];
+    this->start=this->orb_divisions[rank-1];
   }
   if (rank==(mpi_world_size-1)) {
     end=N;
