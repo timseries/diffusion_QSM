@@ -78,9 +78,9 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   size[1] = (int) buf[2];
   size[2] = (int) buf[3];
 
-  dspec.caxis[0] = 1;
-  dspec.caxis[1] = 0;
-  dspec.caxis[2] = 0;
+  caxis[0] = 1;
+  caxis[1] = 0;
+  caxis[2] = 0;
 
   yoffset = size[0]; 
   zoffset = size[0] * size[1]; 
