@@ -168,9 +168,9 @@ void DataSpec::PartitionByORB() {
     this->start=this->orb_divisions[rank-1];
   }
   if (rank==(mpi_world_size-1)) {
-    end=N;
+    this->end=N;
   } else {
-    end=orb_divisions[rank];
+    this->end=orb_divisions[rank];
   }
 }
 
