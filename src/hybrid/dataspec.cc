@@ -151,15 +151,15 @@ void DataSpec::PartitionByORB() {
   int orb_start=0;
   int orb_divisions_index=0;
   for (int orb_end=0; orb_end < N; orb_end++) {
-    // if ((workmatrix[orb_end]-workmatrix[orb_start])>=average_process_work) {
-    //   if (orb_divisions_index>orb_divisions_size) {
-    //     printroot("too many orb divisions created\n");
-    //     break;
-    //   }  
-    //   orb_divisions[orb_divisions_index]=orb_end;
-    //   orb_divisions_index++;
-    //   orb_start=orb_end;
-    // }
+    if ((workmatrix[orb_end]-workmatrix[orb_start])>=average_process_work) {
+      if (orb_divisions_index>orb_divisions_size) {
+        printroot("too many orb divisions created\n");
+        break;
+      }  
+      orb_divisions[orb_divisions_index]=orb_end;
+      orb_divisions_index++;
+      orb_start=orb_end;
+    }
   }
 
   if (rank==0) {
