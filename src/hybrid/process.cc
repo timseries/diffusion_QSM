@@ -78,29 +78,17 @@ bool Process::Init(int argc, char** args) {
   MPI_File fptr;
   HandleArgs(argc, args);
   StartMPI(argc, args);
-  // Initialize some extra dataspec parameters
-  dspec.caxis[0] = 1;
-  dspec.caxis[1] = 0;
-  dspec.caxis[2] = 0;
   // initilize the output object
   myout.Init(arghandler, rank, size);
   // Load the data, mask, and create the model
   if (!loadDeltaB()) goto exitnow;
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (rank==0) printroot("everyone finished loading deltab\n");
   if (!loadMask()) goto exitnow;
-//MPI_Barrier(MPI_COMM_WORLD);
-if (rank==0) printroot("everyone finished getting the fg/bg mask\n");
   if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
-  printroot("ncyls modelmap: %d",kernel.modelmap.ncyls);
-  // Adjust the dataspec using orthogonal recursive bisection 
   printroot("rank: %d\n",rank);
   printroot("dspec start: %d\n", dspec.start);
   printroot("dspec end: %d\n", dspec.end);
-//MPI_Barrier(MPI_COMM_WORLD);
   if (rank==0) printroot("everyone finished creating the modelmap\n");
   myout.DistrArray(deltab, dspec.range, 3, dspec.size, "deltab");
-//MPI_Barrier(MPI_COMM_WORLD);
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
   // initialize chi vector
   chi = (Real*) calloc(dspec.N, sizeof(Real));
@@ -186,8 +174,6 @@ bool Process::loadDeltaB() {
     return false;
   }
   if (rank==0) printroot("   file: %s\n", filepath);
-
-  // open file for reading
   err = MPI_File_open(MPI_COMM_SELF, filepath,
                       MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
   if (err) {
@@ -195,30 +181,18 @@ bool Process::loadDeltaB() {
     return false;
   }
   if (rank==0) printroot("error status from file open on proc 0: %d\n",err);
-  // check endianness
   checkEndianness(fptr, flgByteSwap);
-
-  // check version
   checkVersion(fptr, flgByteSwap);
-
-  // read in header
   if (rank==0) printroot("Reading-in MPI header...\n");
   MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
-
-  // byte swap header if required
   if (rank==0) printroot("Byte-swapping header...\n");
   if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
-
   // create the dataspec here
   if (rank==0) printroot("Creating dataspec...\n");
   dspec.Create(buf,rank,size);
-  //printall("[%d] start = %d end = %d\n", rank, dspec.start, dspec.end);
-  //printroot("rank:%d , barrier waiting for the rest of the processes to sync\n", rank);
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank==0) printroot("everyone finsished creating the dspec...\n");
-//  printroot("rank:%d , Allocating deltaB array portion...\n", rank);
   deltab = (Real*) calloc(dspec.range, sizeof(Real));
-  //printroot("Finding start of deltab...\n");
   err=MPI_File_seek(fptr, dspec.start*sizeof(double), MPI_SEEK_CUR);
   if (err) printroot("rank:%d could't seek file, error:%d", rank, err);
 
@@ -229,10 +203,7 @@ bool Process::loadDeltaB() {
       byteswap((char*)deltab, dspec.range, sizeof(double));
     }
   } else {
-   //printroot("rank:%d , Casting temporary buffer into double...\n", rank);
-   //printroot("rank:%d , dspec.range: %d\n", rank, dspec.range);
     castbuf = (double*) calloc(dspec.range, sizeof(double));
-   //printroot("rank:%d , reading mpi file\n", rank);
    err=MPI_File_read(fptr, castbuf, dspec.range, MPI_DOUBLE, &status);
 	  if (err) printroot("rank:%d could't read file, error:%d", rank, err);
     if (flgByteSwap) {
@@ -240,7 +211,6 @@ bool Process::loadDeltaB() {
     }
 MPI_Barrier(MPI_COMM_WORLD);	
  if (rank==0) printroot("everyone read the mpi file and byteswapped it\n");
-//    printroot("rank:%d, Copying temporary buffer into deltab...\n",rank);
     for (int i = 0; i < dspec.range; i++)
       deltab[i] = (float) castbuf[i];
     free(castbuf);
@@ -248,18 +218,11 @@ MPI_Barrier(MPI_COMM_WORLD);
 MPI_Barrier(MPI_COMM_WORLD);
   err=MPI_File_close(&fptr);
   if (err) printroot("rank:%d could't close file, error:%d", rank, err);
-
-  // set offsets
-  /* dspec.yoffset = dspec.size[0]; */
-  /* dspec.zoffset = dspec.size[0] * dspec.size[1]; */
-
   if (rank==0) printroot("   size = %d %d %d\n", dspec.size[0],
             dspec.size[1], dspec.size[2]);
   if (rank==0) printroot("   number of elements = %d\n", dspec.N);
   printroot("rank: %d, dspec.start: %d, dspec.end: %d \n", rank, dspec.start, dspec.end);
-//  printroot("rank: %d closing filepath\n",rank);
   free(filepath);
-//  printroot("rank: %d filepath closed\n",rank);
   return true;
 }
 
@@ -280,8 +243,6 @@ bool Process::loadMask() {
   if (rank==0) printroot("   file: %s\n", filepath);
 
   mask = (bool*) calloc(dspec.N, sizeof(bool));
-  // open file for reading
-//  MPI_Barrier(MPI_COMM_WORLD);
   if (rank == 0) {
     printroot("trying to read mask in rank 0...\n");
     err = MPI_File_open(MPI_COMM_SELF, filepath,
@@ -290,21 +251,11 @@ bool Process::loadMask() {
       if (rank==0) printroot("Could not open mask file");
       return false;
     }
-    
-    // check endianness
     checkEndianness(fptr, flgByteSwap);
-
-    printroot("endiannesschecked 0...\n");
-    // check version
     checkVersion(fptr, flgByteSwap);
-    //printroot("attempting to read mask file\n");
-    // read in header
     MPI_File_read(fptr, buf, 4, MPI_DOUBLE, MPI_STATUS_IGNORE);
     printroot("read finished\n");
-    // byte swap header if required
     if (flgByteSwap) byteswap((char*)buf,4,sizeof(double));
-
-    // Check parameters match
     if (dspec.N != buf[0]) {
       printroot("Number of elements in Mask does not match DeltaB");
       return false;}
@@ -317,16 +268,10 @@ bool Process::loadMask() {
     if (dspec.size[2] != buf[3]) {
       if (rank==0) printroot("Size of third dimension of Mask does not match DeltaB");
       return false;}
-
     MPI_File_read(fptr, mask, dspec.N, MPI_CHAR, MPI_STATUS_IGNORE);
     MPI_File_close(&fptr);
- 
-
   }
 	  MPI_Bcast(mask, dspec.N, MPI_CHAR, 0, MPI_COMM_WORLD);
-//	printroot("rank:%d , broadcast\n",rank);
- // MPI_Barrier(MPI_COMM_WORLD);
-//if (rank==0) printroot("ready to broadcast from rank 0");
   if (rank==0)	printroot("rank:%d, broadcast finished\n",rank);
   //TODO(timseries): do this somewhere else
   dspec.nBG = 0; dspec.nFG = 0;
@@ -355,7 +300,6 @@ bool Process::FullPass() {
   //       tau   = 2/norm(A), and
   //       D     = represents a 3D laplacian filter
 
-  // TODO(timseries): these constants should be specified somewhere else, not as magic nubmers
   Real tau = 0.15, alpha = 0.75, beta = 0.25;
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   Real *cylColumns;
@@ -397,8 +341,6 @@ bool Process::FullPass() {
 
   bool flg;
 
-  //  Problem *P;
-
   if (rank==0) printroot("Full pass ...\n");
 
   fname = (char*) calloc(256, sizeof(char));
@@ -420,11 +362,7 @@ bool Process::FullPass() {
   if (rank==0) printroot("   alpha = %0.3f\n", alpha);
   if (rank==0) printroot("   beta = %0.3f\n", beta);
 
-  //==================================================================================================================
-  // Get start and end of local portion of Deltab array
-
-  //==================================================================================================================
-  // Create Arrays....
+  // Create the problem specific arrays arrays....
   P = new Problem(kernel, dspec, arghandler, tau, alpha, beta, rank);
 
   //==================================================================================================================
@@ -531,10 +469,6 @@ bool Process::FullPass() {
   }
 
 
-  // if (rank==0) printroot("   Creating new_x array ...\n");
-  // new_x = (Real*) calloc(dspec.nFG, sizeof(Real));
-  // memset(new_x, 0, dspec.nFG * sizeof(Real));
-
   //==================================================================================================================
   // Create cylColumns array
   cylColumns = P->cylColumns;
@@ -558,9 +492,6 @@ bool Process::FullPass() {
         //        mix = kernel.modelmap.mask[FGindices[o]];
                mix = kernel.modelmap.mask[FGindicesUniform[o]];
         if (mix != -1) {
-          // oz = FGindices[o] / dspec.zoffset;
-          // oy = (FGindices[o] - oz * dspec.zoffset) / dspec.yoffset;
-          // ox = FGindices[o] - oy * dspec.yoffset - oz * dspec.zoffset;
           oz = FGindicesUniform[o] / dspec.zoffset;
           oy = (FGindicesUniform[o] - oz * dspec.zoffset) / dspec.yoffset;
           ox = FGindicesUniform[o] - oy * dspec.yoffset - oz * dspec.zoffset;
@@ -569,7 +500,6 @@ bool Process::FullPass() {
           ry = py - oy + kernel.halfsize;
           rz = pz - oz + kernel.halfsize;          
           
-          // cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindices[o]);
           cylColumns[mix * dspec.range + p - dspec.start] = kernel.Get(rx, ry, rz, FGindicesUniform[o]);
         }
       }
@@ -619,59 +549,45 @@ bool Process::FullPass() {
 
     // printroot("rank: %d first multadd start :%.3f\n", rank, MPI_Wtime());
     // Ax_b = A * x - b
-    // Dx = D * x
     MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true,iteration);
     // printroot("rank: %d first multadd finish:%.3f\n", rank, MPI_Wtime());
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    printroot("first multadd iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
+    printroot("first_multadd_iteration: %d, rank: %d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     tIterStart2 = MPI_Wtime();
 
-    // AtAx_b = A' * Ax_b
     // DtDx = D' * Dx
-    // printroot("rank: %d second multadd start: %.3f\n", rank, MPI_Wtime());
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
-    // printroot("rank: %d second multadd finish: %.3f\n", rank, MPI_Wtime());
-          // printroot("after second  multadd....\n",p);
-          // printroot("P->Ax_b[8]: %0.3e\n",P->AtAx_b[8]);
 
 
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-    printroot("second multadd iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
+    printroot("second multadd iteration: %d, rank: %d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
+
     // Reduce AtAx_b
     tOverhead = MPI_Wtime();
 
-    //if (rank==0) printroot("      reducing AtAx_b ...\n");
-    // printroot("rank: %d first allreduce start: %.3f\n", rank, MPI_Wtime());
     tIterStart2 = MPI_Wtime();
     MPI_Allreduce(MPI_IN_PLACE, P->AtAx_b, P->dspec.nFG, MPI_Real, MPI_SUM, MPI_COMM_WORLD);
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-    printroot("first allreduce iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
-    // printroot("rank: %d first allreduce end: %.3f\n", rank, MPI_Wtime());
-    // printroot("rank: %d second allreduce start: %.3f\n", rank, MPI_Wtime());
+    printroot("first allreduce iteration: %d, rank: %d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     tIterStart2 = MPI_Wtime();
     MPI_Allreduce(MPI_IN_PLACE, P->DtDx, P->dspec.nFG, MPI_Real, MPI_SUM, MPI_COMM_WORLD);
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
-    printroot("second allreduce iteration %d, rank:%d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
-    // printroot("rank: %d second allreduce end: %.3f\n", rank, MPI_Wtime());
+    printroot("second allreduce iteration: %d, rank: %d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     tsecs = MPI_Wtime() - tOverhead;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
-    // if (rank==0) printroot(" (%ldmin %lds)", tmins, tsecs);
     // Calculate new x and rms values
     tRms = MPI_Wtime();
 #ifdef USE_OPENCL
@@ -770,16 +686,6 @@ bool Process::FullPass() {
     fprintf(stderr, "\nProfiling: Wall time %5.2lf seconds\n", wall_time);
 #endif
   // Free memory
-  // if (rank==0) printroot("   Finished. Cleaning up ...\n");
-  // free(x);
-  // free(FGindices);
-  // free(Ax_b);
-  // free(AtAx_b);
-  // free(new_x);
-  // free(cylColumns);
-  // free(Dx);
-  // free(DtDx);
-  // free(fname);
 
   return true;
 }
@@ -788,10 +694,6 @@ bool Process::FullPass() {
 // Forwards: Ax_b=Ax-b
 // Backwards: AtAx_b=A'(Ax-b)
 // Calls Mult version of this method, which just does  a multiply when no addend is specified.
-  // void Process::MultAdd(Real result_fidelity, Real result_regularizer,
-  //                     Real multiplicand_fidelity,Real multiplicand_regularizer, 
-  //                     Real addend, bool dir) {
-//void Process::MultAdd(Problem *P,bool dir) {
 void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir, int iteration) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
@@ -841,7 +743,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         cl_set_arg(cl, P->kernel_iterate1, 17, end);
         cl_enqueue_kernel(P->cl, P->kernel_iterate1, &P->profile1.event);   //Profile this kernel
       }
-      //printf("\n");
     }
     cl_set_arg(cl, P->kernel_delta_b, 2, P->dspec.start);
     cl_set_arg(cl, P->kernel_delta_b, 3, P->dspec.end);
@@ -854,7 +755,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     cl_size(P->cl, P->dspec.nFG, 0, P->threads, rank);  //Resize
     //Split the job up if requested
     int BLOCK = (P->dspec.range / P->divide + 0.5);
-    //printf("iterate2 0 ");
     for (int start=P->dspec.start; start<P->dspec.end; start += BLOCK)
     {
       int end = start + BLOCK;
@@ -866,7 +766,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
       // Perform the operations
       cl_enqueue_kernel(P->cl, P->kernel_iterate2, &P->profile2.event);   //Profile this kernel
     }
-    //printf("\n");
     // Read the results back
     cl_enqueue_read(P->cl, P->cl_AtAx_b, P->cl_size_fg, P->AtAx_b);
     cl_enqueue_read(P->cl, P->cl_DtDx, P->cl_size_fg, P->DtDx);
@@ -876,7 +775,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     cl_profile(P->cl, &P->profile2);
   }
 #else //assume we're using CPU on a bluegene or PC
-    //TODO(timseries): fix this initialization section to not use P!
     if (dir) {
         memset(P->Ax_b, 0, (P->dspec.range) * sizeof(Real));
         memset(P->Dx, 0, (P->dspec.range) * sizeof(Real));
@@ -898,15 +796,9 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     {
 #ifdef USE_OPENMP
       tid = omp_get_thread_num();
-
-      //      if (tid == 0 && rank==0 && iteration==0)
-//      {
-        nthreads = omp_get_num_threads();
-        // printf("Starting  A*x-b using %d threads\n",nthreads);
-        // printf("Initializing matrices on thread %d: \n", tid);
-	//      }
-        numspheres=0;
-        numcyls=0;
+      nthreads = omp_get_num_threads();
+      numspheres=0;
+      numcyls=0;
 #endif
 #pragma omp for schedule(static, chunk)
     for (o = 0; o < P->dspec.nFG; o++) {
@@ -918,9 +810,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
       }
       if ((P->x[o] and dir) or (!dir)) {
         
-        // oz = P->FGindices[o] / P->dspec.zoffset;
-        // oy = (P->FGindices[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
-        // ox = P->FGindices[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
         oz = P->FGindicesUniform[o] / P->dspec.zoffset;
         oy = (P->FGindicesUniform[o] - oz * P->dspec.zoffset) / P->dspec.yoffset;
         ox = P->FGindicesUniform[o] - oy * P->dspec.yoffset - oz * P->dspec.zoffset;
@@ -964,11 +853,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             }
             else if (P->PreCalcCylinders) {
               result_fidelity[index2] += P->cylColumns[mix*P->dspec.range + p-P->dspec.start] * multiplicand_fidelity[index1];
-              // if (dir) {
-              //   P->Ax_b[index2] += P->cylColumns[mix*P->dspec.range + index2] * P->x[index1];
-              // } else {
-              //   P->AtAx_b[index2] += P->cylColumns[mix*P->dspec.range + index2] * P->Ax_b[index1];
-              // }
             }
             else if (rx == 0 && ry == 0 && rz == 0) {
               result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
@@ -976,10 +860,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             else {
               result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
             }
-            
-            //OK 7/13: Optimised Laplacian,
-            //This is not faster on CPU (as it is on GPU due to reduced branching)
-            //but it is cleaner, using pre-calculated single precision constants also slightly faster
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {
               result_regularizer[index2] += Lfactors[_rx + _ry + _rz] *  multiplicand_regularizer[index1];
@@ -1015,16 +895,12 @@ bool Process::WriteOut(){
     free(filepath);
     filepath = NULL;
   }
-  // TODO(timseries): include some error checking code as with the other methods in this class. Just return 1 for now....
   return 1;
 }
 
 bool Process::CleanUp(){
   if (rank==0) printroot("\n------------------------------------------\n");
   if (rank==0) printroot("CLEANING UP\n");
-  // if (rank > 0) {
-  //   MPI_Recv(NULL, 0, MPI_CHAR, rank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-  // }
   if (rank==0) printroot("Freeing memory ...\n");
   if (deltab != NULL)			free(deltab);
   if (rank==0) printroot("Freed deltab ...\n");
@@ -1036,14 +912,10 @@ bool Process::CleanUp(){
   if (rank==0) printroot("Finished\n", rank); fflush(stdout);
   myout.Close();
   printf("finished rank=%d\n",rank);
-  // if (rank < size -1) {
-  //   MPI_Send(NULL, 0, MPI_CHAR, rank+1, 0, MPI_COMM_WORLD);
-  //     }
   MPI_Finalize();
 #ifdef HPM
   // hpmStop("main function");
   hpmTerminate();
 #endif
-  // TODO(timhseries): include some error checking code as with the other methods in this class. Just return 1 for now....
   return 1;  
 }
