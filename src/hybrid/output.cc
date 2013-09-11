@@ -70,7 +70,7 @@ void Output::Init(const ArgHandler &arghandler, int rank, int size) {
   if (rank == 0) {
     sprintf(tmpstr, "%s/out.bin", outdir);
     MPI_File_open(MPI_COMM_SELF, tmpstr, MPI_MODE_WRONLY | MPI_MODE_CREATE,
-s                  MPI_INFO_NULL, &binfile);
+                  MPI_INFO_NULL, &binfile);
 #ifdef DEBUG
     if (rank==0) printroot("   Output::Init : opened binary file\n");
 #endif
