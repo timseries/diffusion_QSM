@@ -272,13 +272,31 @@ void Problem::UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &d
     }
   }
 }
-void Problem::Reallocate(DataSpec &dspec) {
+void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
   free(Ax_b);
   free(Dx);
   // if (rank==0) printroot("   Reallocating Ax_b array ...\n");
   Ax_b = (Real*) calloc(dspec.range, sizeof(Real));
   // if (rank==0) printroot("   Reallocate Dx array ...\n");
   Dx = (Real*) calloc(dspec.range, sizeof(Real));
+  double M = (double)kernel.modelmap.ncyls * dspec.range * sizeof(Real);
+  cylColumns = NULL;
+  //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
+  if (1)  //Force cylinder calc on the fly for testing
+  {
+    printf("Require %.0f bytes for cylColumns array, attempting allocation...", M);
+    cylColumns = (Real*) malloc(M);
+  }
+  if (cylColumns == NULL) {
+    printroot("   Not enough memory to pre-calculate cylinder kernels.\n");
+    printroot("   Cylinder kernels will be calculated on-the-fly, which will take longer to process.\n");
+    PreCalcCylinders = false;
+  }
+  else {
+    PreCalcCylinders = true;
+  }
+
+
 }
 
 Problem::~Problem() {

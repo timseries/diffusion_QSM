@@ -197,7 +197,6 @@ bool Process::loadDeltaB() {
 
   if (rank==0) printroot("Creating modelmap...\n");
   if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
-  if (rank==0) printroot("Allocating partitions based on foreground voxel locations...\n");
   deltab = (Real*) calloc(dspec.range, sizeof(Real));
   err=MPI_File_seek(fptr, dspec.start*sizeof(double), MPI_SEEK_CUR);
   if (err) printroot("rank:%d could't seek file, error:%d", rank, err);
@@ -536,15 +535,15 @@ bool Process::FullPass() {
     if (iteration <=1) {
       MPI_Allreduce(MPI_IN_PLACE, dspec.workmatrix, P->dspec.N, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       dspec.AllocatePartitions(true);
-      P->Reallocate(dspec);
+      P->Reallocate(kernel,dspec);
       //do this in dataspec method
-
+      if (!loadDeltaB()) printroot("error reading in reallocated deltab\n");
       dspec.workmatrix = (int*) calloc(dspec.N, sizeof(int));
       if (rank==0) printroot("reallocating\n");
       printroot("rank: %d\n",rank);
       printroot("dspec start: %d\n", dspec.start);
       printroot("dspec end: %d\n", dspec.end);
-
+      
     }
 
     // Calculate new x and rms values

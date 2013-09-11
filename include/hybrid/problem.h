@@ -45,7 +45,7 @@ class Problem {
  public:
   Problem();
   Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank);
-  void Reallocate(DataSpec &dspec);
+  void Reallocate(Kernel &kernel, DataSpec &dspec);
   void UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &dspec);
 
   virtual ~Problem();
