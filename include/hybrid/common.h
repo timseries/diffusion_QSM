@@ -54,6 +54,10 @@
 //Constants
 #define SIZEOF_CHAR 1
 #define LOADDATAVERSION 1
+#define SPHERICAL_WORK 1
+#define CYLINDRICAL_PRECALC_WORK 1
+#define CYLINDRICAL_CENTER_WORK 1
+#define CYLINDRICAL_CALC_WORK 3
 
 // The models typedef used for computing the kernel basis functions.
 // MODEL_SPHERICAL: use the spherical model only.

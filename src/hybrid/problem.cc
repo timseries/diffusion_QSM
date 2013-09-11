@@ -74,9 +74,13 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   x = (Real*) calloc(dspec.nFG, sizeof(Real));
     
   //==================================================================================================================
+
+  //==================================================================================================================
   // Create foreground indices array
   if (rank==0) printroot("   Creating foreground indices array ...\n");
   FGindices = (int*) calloc(dspec.N, sizeof(int));
+
+
 
   // Create foreground indices array
   if (rank==0) printroot("   Creating uniform foreground indices array ...\n");
@@ -198,6 +202,83 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   kernel_rms_new_x = cl_get_kernel(cl, "rms_new_x", 4, cl_AtAx_b, cl_DtDx, cl_x, cl_out);
   kernel_collect = cl_get_kernel(cl, "collect", 1, cl_out);
 #endif
+}
+void Problem::UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &dspec) {
+  if (rank==0) printroot("   Creating foreground indices array ...\n");
+  //FGindices = (int*) calloc(dspec.N, sizeof(int));
+  int o = 0;
+  int p = 0;
+  int nFGCyls=0;
+  int nFGSpheres=0;
+  for (p = 0; p < dspec.N; p++) {
+    if (mask[p]) {
+      FGindices[o] = p;
+      if (kernel.modelmap.mask[p]==-1) {
+        FGindicesSphere[nFGSpheres]=p;
+        nFGSpheres++;
+      } else {
+        FGindicesCyl[nFGCyls]=p;
+        nFGCyls++;
+      }
+      o++;
+    }
+  }
+  if (rank==0) printroot("Number of spheres: %d\n", nFGSpheres);
+  if (rank==0) printroot("Number of cylinders: %d\n", nFGCyls);
+  // Create uniform foreground indices array and initialise x
+  double ratio=0;
+  int large_count=0;
+  int small_count=0;
+  int target_large_count=0;
+  int target_small_count=0;
+  double target_ratio=0;
+  int* larger_array;
+  int* smaller_array;
+  if (nFGSpheres>nFGCyls) {
+    larger_array=FGindicesSphere;
+    smaller_array=FGindicesCyl;
+    target_large_count=nFGSpheres;
+    target_small_count=nFGCyls;
+  } else {
+    larger_array=FGindicesCyl;
+    smaller_array=FGindicesSphere;
+    target_large_count=nFGCyls;
+    target_small_count=nFGSpheres;
+  }
+  target_ratio=((double) target_large_count)/target_small_count;
+  if (rank==0) printroot("   Creating uniform foreground indices array ...\n");
+  o = 0;
+
+  for (p = 0; p < dspec.N; p++) {
+    if (mask[p]) {
+      if ((ratio<target_ratio) && (large_count<target_large_count)) { //add some from the large set
+        FGindicesUniform[o] = larger_array[large_count];                   
+        large_count++;
+      } else if ((ratio>target_ratio) && (small_count<target_small_count)){
+        FGindicesUniform[o] = smaller_array[small_count];                   
+        small_count++;
+      } else if (large_count<target_large_count) {
+        FGindicesUniform[o] = larger_array[large_count];                   
+        large_count=large_count+(target_large_count-large_count>0);
+      } else if (small_count<target_small_count){
+        FGindicesUniform[o] = smaller_array[small_count];                   
+        small_count=small_count+(target_small_count-small_count>0);
+      } else {
+        if (rank==0) printroot("error: index out of bounds, sum of small/large=%d, total FG number=%d\n", 
+                               small_count+large_count,dspec.nFG);
+      }
+      ratio = ((double) large_count)/small_count;
+      o++;
+    }
+  }
+}
+void Problem::Reallocate(DataSpec &dspec) {
+  free(Ax_b);
+  free(Dx);
+  // if (rank==0) printroot("   Reallocating Ax_b array ...\n");
+  Ax_b = (Real*) calloc(dspec.range, sizeof(Real));
+  // if (rank==0) printroot("   Reallocate Dx array ...\n");
+  Dx = (Real*) calloc(dspec.range, sizeof(Real));
 }
 
 Problem::~Problem() {

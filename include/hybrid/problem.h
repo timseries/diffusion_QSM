@@ -45,6 +45,9 @@ class Problem {
  public:
   Problem();
   Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank);
+  void Reallocate(DataSpec &dspec);
+  void UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &dspec);
+
   virtual ~Problem();
   DataSpec &dspec;
 
@@ -54,6 +57,8 @@ class Problem {
   Real *DtDx;
   Real *x;
 
+  int *workmatrix; //cumulative work matrix over the volume
+  
   bool PreCalcCylinders;
   Real *cylColumns;
   int *FGindices; // indices corresponding to foreground elements

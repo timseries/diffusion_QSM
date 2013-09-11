@@ -38,6 +38,11 @@
 #include <float.h>
 #include <math.h>
 
+#include <mpi.h>
+
+using ::util::checkVersion;
+using ::util::checkEndianness;
+using ::util::byteswap;
 
 DataSpec::DataSpec(){
   size[0]=0;
@@ -47,6 +52,7 @@ DataSpec::DataSpec(){
   yoffset=0;
   zoffset=0;
   orb_divisions=NULL;
+  workmatrix=NULL;
   orb_divisions_size=0;
   B0=0;
   bhat[0]=0;
@@ -64,15 +70,44 @@ DataSpec::DataSpec(){
   rank=0;
 }
 DataSpec::~DataSpec() {}
-void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
+bool DataSpec::Create(const ArgHandler &arghandler, int rank, int mpi_world_size) {
   // process header into relevant variables
-  //buf is a file buffer created by loadDeltaB
-  int ElsPerProc=0;
+  //info about datas (size and number of voxels) determined from dltab
   double bmag=0;
+  char *filepath;
+  int err=0;
+  MPI_File fptr;
+  MPI_Status status;
+  MPI_Offset offset, disp;
+  bool flgByteSwap;
+  double buf[11];
+  double *castbuf;
+
+  if (rank==0) printroot("Loading DeltaB ...\n");
+  if (!arghandler.GetArg("-DeltaB", filepath)) {
+    if (rank==0) printroot("Data file not specified\n");
+    return false;
+  }
+  if (rank==0) printroot("   file: %s\n", filepath);
+  err = MPI_File_open(MPI_COMM_SELF, filepath,
+                      MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
+  if (err) {
+    printroot("rank:%d Could not open file\n", rank);
+    return false;
+  }
+  if (rank==0) printroot("error status from file open on proc 0: %d\n",err);
+  checkEndianness(fptr, flgByteSwap);
+  checkVersion(fptr, flgByteSwap);
+  if (rank==0) printroot("Reading-in MPI header...\n");
+  MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
+  if (rank==0) printroot("Byte-swapping header...\n");
+  if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
+  // create the dataspec here
+  if (rank==0) printroot("Creating dataspec...\n");
+
   this->mpi_world_size=mpi_world_size;
   this->rank=rank;
   N = (int) buf[0];
-  this->workmatrix = (int*) calloc(N, sizeof(int));
 
   size[0] = (int) buf[1];
   size[1] = (int) buf[2];
@@ -94,10 +129,22 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   bhat[0] /=bmag;
   bhat[1] /=bmag;
   bhat[2] /=bmag;
-  this->orb_divisions_size=mpi_world_size-2;
-  this->orb_divisions=(int*) calloc(this->orb_divisions_size, sizeof(int));
+  err=MPI_File_close(&fptr);
+  free(filepath);
 
-  if (0) {
+  // Create workmatrix
+  if (rank==0) printroot("   Creating workmatrix array ...\n");
+  workmatrix = (int*) calloc(N, sizeof(int));
+  return true;
+}
+
+void DataSpec::AllocatePartitions(bool orb_flag) {
+  int ElsPerProc=0;
+  workmatrix = (int*) calloc(N, sizeof(int));
+  orb_divisions_size=mpi_world_size-2;
+  orb_divisions=(int*) calloc(orb_divisions_size, sizeof(int));
+
+  if (~orb_flag) {
     
     //set the start and finish using continguous, even-sized blocks
   ElsPerProc = N / mpi_world_size;
@@ -109,70 +156,44 @@ void DataSpec::Create(double* buf,int rank, int mpi_world_size) {
   end = start + ElsPerProc +
     ((rank < N - ElsPerProc * mpi_world_size) ? 1 : 0);
  } else {
-    int rx=0;
-    int ry=0;
-    int rz=0;
-    int px=0;
-    int py=0;
-    int pz=0;
-
-    int distance_to_center=0;
-    int reference=0;
     int prevworkmatrix=0;
-    int center = N/2;
-    int centerz = center / zoffset;
-    int centery = (center - centerz * zoffset) / yoffset;
-    int centerx = center - centery * yoffset - centerz * zoffset - 1;			    
-    //set the start and finish using blocks proportional to the amount of work...
-    //calculate the total work required, which is invsersely related to the distance to the center
+    //calculate the cumulative work required in place
     for (int p=0; p < N; p++){
-      pz = p / zoffset;
-      py = (p - pz * zoffset) / yoffset;
-      px = p - py * yoffset - pz * zoffset - 1;			    
-      rx=px-centerx;
-      ry=py-centery;
-      rz=pz-centerz;      
-      distance_to_center=ceil(pow((pow(rx,2)+pow(ry,2)+pow(rz,2)),1.0/2.0));
-      if (p==0) {
-        reference=distance_to_center;
-      }
-      workmatrix[p]=prevworkmatrix+abs(reference-distance_to_center);
+      workmatrix[p]=workmatrix[p]+prevworkmatrix;
       prevworkmatrix=workmatrix[p];
     }
-
   PartitionByORB();
   }
   range=end-start;
 }
+
 void DataSpec::PartitionByORB() {
   //compute average amount of work
-  int average_process_work=(int) (workmatrix[N-1]-workmatrix[0])/mpi_world_size;
+  int average_process_work=(int) (workmatrix[N-1]-workmatrix[0])/(orb_divisions_size+2);
   //iterate through the workmatrix and get appropriate bounds for each of the processes
   int orb_start=0;
   int orb_divisions_index=0;
   for (int orb_end=0; orb_end < N; orb_end++) {
-    // if ((workmatrix[orb_end]-workmatrix[orb_start])>=average_process_work) {
-    //   if (orb_divisions_index>orb_divisions_size) {
-    //     printroot("too many orb divisions created\n");
-    //     break;
-    //   }  
-    //   orb_divisions[orb_divisions_index]=orb_end;
-    //   orb_divisions_index++;
-    //   orb_start=orb_end;
-    // }
+    if ((workmatrix[orb_end]-workmatrix[orb_start])>=average_process_work) {
+      if (orb_divisions_index>=orb_divisions_size) {
+        // finished, last process will get what's leftover...
+        break;
+      }  
+      orb_divisions[orb_divisions_index]=orb_end;
+      orb_divisions_index++;
+      orb_start=orb_end;
+    }
   }
-
   if (rank==0) {
     start=0;
   } else {
-    this->start=this->orb_divisions[rank-1];
+    start=orb_divisions[rank-1];
   }
   if (rank==(mpi_world_size-1)) {
-    this->end=N;
+    end=N;
   } else {
-    this->end=orb_divisions[rank];
+    end=orb_divisions[rank];
   }
-  this->start=0;
-  this->end=N;
+
 }
 

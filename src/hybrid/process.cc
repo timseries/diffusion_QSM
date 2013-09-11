@@ -80,10 +80,13 @@ bool Process::Init(int argc, char** args) {
   StartMPI(argc, args);
   // initilize the output object
   myout.Init(arghandler, rank, size);
-  // Load the data, mask, and create the model
-  if (!loadDeltaB()) goto exitnow;
+  // Create the dataspec (open the file to find out how big the data is)
+  if (!dspec.Create(arghandler,rank,size)) goto exitnow;
+  // Create the model, and load the data/mask
   if (!loadMask()) goto exitnow;
-  if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
+  //allocate the partitions evenly at first, use profiling data to reallocate later
+  dspec.AllocatePartitions(false);
+  if (!loadDeltaB()) goto exitnow;
   printroot("rank: %d\n",rank);
   printroot("dspec start: %d\n", dspec.start);
   printroot("dspec end: %d\n", dspec.end);
@@ -189,9 +192,12 @@ bool Process::loadDeltaB() {
   if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
   // create the dataspec here
   if (rank==0) printroot("Creating dataspec...\n");
-  dspec.Create(buf,rank,size);
   MPI_Barrier(MPI_COMM_WORLD);
   if (rank==0) printroot("everyone finsished creating the dspec...\n");
+
+  if (rank==0) printroot("Creating modelmap...\n");
+  if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
+  if (rank==0) printroot("Allocating partitions based on foreground voxel locations...\n");
   deltab = (Real*) calloc(dspec.range, sizeof(Real));
   err=MPI_File_seek(fptr, dspec.start*sizeof(double), MPI_SEEK_CUR);
   if (err) printroot("rank:%d could't seek file, error:%d", rank, err);
@@ -224,6 +230,9 @@ MPI_Barrier(MPI_COMM_WORLD);
   printroot("rank: %d, dspec.start: %d, dspec.end: %d \n", rank, dspec.start, dspec.end);
   free(filepath);
   return true;
+exitnow:
+  return false;
+
 }
 
 bool Process::loadMask() {
@@ -271,7 +280,7 @@ bool Process::loadMask() {
     MPI_File_read(fptr, mask, dspec.N, MPI_CHAR, MPI_STATUS_IGNORE);
     MPI_File_close(&fptr);
   }
-	  MPI_Bcast(mask, dspec.N, MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(mask, dspec.N, MPI_CHAR, 0, MPI_COMM_WORLD);
   if (rank==0)	printroot("rank:%d, broadcast finished\n",rank);
   //TODO(timseries): do this somewhere else
   dspec.nBG = 0; dspec.nFG = 0;
@@ -364,79 +373,13 @@ bool Process::FullPass() {
 
   // Create the problem specific arrays arrays....
   P = new Problem(kernel, dspec, arghandler, tau, alpha, beta, rank);
-
+  P->UniformFGIndices(mask, rank, kernel, dspec);
   //==================================================================================================================
-  // Create foreground indices array and initialise x
+  // Point to the problem foreground indices array 
   FGindices=P->FGindices;
   FGindicesCyl=P->FGindicesCyl;
   FGindicesSphere=P->FGindicesSphere;
-  if (rank==0) printroot("   Creating foreground indices array ...\n");
-  //FGindices = (int*) calloc(dspec.N, sizeof(int));
-  o = 0;
-  int nFGCyls=0;
-  int nFGSpheres=0;
-  for (p = 0; p < dspec.N; p++) {
-    if (mask[p]) {
-      FGindices[o] = p;
-      if (kernel.modelmap.mask[p]==-1) {
-        FGindicesSphere[nFGSpheres]=p;
-        nFGSpheres++;
-      } else {
-        FGindicesCyl[nFGCyls]=p;
-        nFGCyls++;
-      }
-      o++;
-    }
-  }
-  if (rank==0) printroot("Number of spheres: %d\n", nFGSpheres);
-  if (rank==0) printroot("Number of cylinders: %d\n", nFGCyls);
-  // Create uniform foreground indices array and initialise x
-  double ratio=0;
-  int large_count=0;
-  int small_count=0;
-  int target_large_count=0;
-  int target_small_count=0;
-  double target_ratio=0;
-  int* larger_array;
-  int* smaller_array;
-  if (nFGSpheres>nFGCyls) {
-    larger_array=FGindicesSphere;
-    smaller_array=FGindicesCyl;
-    target_large_count=nFGSpheres;
-    target_small_count=nFGCyls;
-  } else {
-    larger_array=FGindicesCyl;
-    smaller_array=FGindicesSphere;
-    target_large_count=nFGCyls;
-    target_small_count=nFGSpheres;
-  }
-  target_ratio=((double) target_large_count)/target_small_count;
-  FGindicesUniform=P->FGindicesUniform;
-  if (rank==0) printroot("   Creating uniform foreground indices array ...\n");
-  o = 0;
 
-  for (p = 0; p < dspec.N; p++) {
-    if (mask[p]) {
-      if ((ratio<target_ratio) && (large_count<target_large_count)) { //add some from the large set
-        FGindicesUniform[o] = larger_array[large_count];                   
-        large_count++;
-      } else if ((ratio>target_ratio) && (small_count<target_small_count)){
-        FGindicesUniform[o] = smaller_array[small_count];                   
-        small_count++;
-      } else if (large_count<target_large_count) {
-        FGindicesUniform[o] = larger_array[large_count];                   
-        large_count=large_count+(target_large_count-large_count>0);
-      } else if (small_count<target_small_count){
-        FGindicesUniform[o] = smaller_array[small_count];                   
-        small_count=small_count+(target_small_count-small_count>0);
-      } else {
-        if (rank==0) printroot("error: index out of bounds, sum of small/large=%d, total FG number=%d\n", 
-                               small_count+large_count,dspec.nFG);
-      }
-      ratio = ((double) large_count)/small_count;
-      o++;
-    }
-  }
 
   //==================================================================================================================
   // Initialise x
@@ -549,7 +492,7 @@ bool Process::FullPass() {
 
     // printroot("rank: %d first multadd start :%.3f\n", rank, MPI_Wtime());
     // Ax_b = A * x - b
-    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,true,iteration);
+    MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,dspec.workmatrix,true,iteration);
     // printroot("rank: %d first multadd finish:%.3f\n", rank, MPI_Wtime());
     tIterEnd1 = MPI_Wtime();
     tsecs = tIterEnd1 - tIterStart1;
@@ -559,7 +502,7 @@ bool Process::FullPass() {
     tIterStart2 = MPI_Wtime();
 
     // DtDx = D' * Dx
-    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,false,iteration);
+    MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,dspec.workmatrix,false,iteration);
 
 
     tIterEnd2 = MPI_Wtime();
@@ -588,7 +531,24 @@ bool Process::FullPass() {
     tsecs = MPI_Wtime() - tOverhead;
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
+
+//reallocate dspec on the first few iterations based on workmatrix estimate
+    if (iteration <=1) {
+      MPI_Allreduce(MPI_IN_PLACE, dspec.workmatrix, P->dspec.N, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      dspec.AllocatePartitions(true);
+      P->Reallocate(dspec);
+      //do this in dataspec method
+
+      dspec.workmatrix = (int*) calloc(dspec.N, sizeof(int));
+      if (rank==0) printroot("reallocating\n");
+      printroot("rank: %d\n",rank);
+      printroot("dspec start: %d\n", dspec.start);
+      printroot("dspec end: %d\n", dspec.end);
+
+    }
+
     // Calculate new x and rms values
+
     tRms = MPI_Wtime();
 #ifdef USE_OPENCL
     //Calculate new_x and rms
@@ -694,7 +654,7 @@ bool Process::FullPass() {
 // Forwards: Ax_b=Ax-b
 // Backwards: AtAx_b=A'(Ax-b)
 // Calls Mult version of this method, which just does  a multiply when no addend is specified.
-void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, bool dir, int iteration) {
+void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, int* workmatrix, bool dir, int iteration) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   int recvcounts, displs;
@@ -850,15 +810,19 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
             if (mix == -1) { // spherical kernel
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
+              workmatrix[p]+=SPHERICAL_WORK;
             }
             else if (P->PreCalcCylinders) {
               result_fidelity[index2] += P->cylColumns[mix*P->dspec.range + p-P->dspec.start] * multiplicand_fidelity[index1];
+              workmatrix[p]+=CYLINDRICAL_PRECALC_WORK;
             }
             else if (rx == 0 && ry == 0 && rz == 0) {
               result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
+              workmatrix[p]+=CYLINDRICAL_CENTER_WORK;
             }
             else {
               result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
+              workmatrix[p]=CYLINDRICAL_CALC_WORK;
             }
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {

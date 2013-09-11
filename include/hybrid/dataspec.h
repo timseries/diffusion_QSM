@@ -34,15 +34,16 @@
 #define INCLUDE_DATASPEC_H_
 
 #include "hybrid/common.h"
+#include "hybrid/arghandler.h"
+#include "hybrid/util.h"
 
 class DataSpec {
  public:
   DataSpec();
   virtual ~DataSpec();
-
-  void Create(double* buf,int rank, int size);
+  bool Create(const ArgHandler &arghandler, int rank, int mpi_world_size);
+  void AllocatePartitions(bool orb_flag);
   void PartitionByORB();
-  void ORB(int data_start, int data_end, int orb_start,int orb_end);
   int size[3];  // data size
   int N; // number of foxelsdelmap
   int yoffset;
@@ -51,10 +52,10 @@ class DataSpec {
   int rank; //!< Brief the rank of the process which has this dataspec
   int* orb_divisions; //!< Brief array of divisions from orb algorithm
   int orb_divisions_size; //!< Size of the array orb_dvisions
+  int* workmatrix;
   double B0;
   double bhat[3];
   double caxis[3];
-  int* workmatrix;
   int nBG;
   int nFG;
   unsigned start;

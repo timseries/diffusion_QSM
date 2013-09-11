@@ -66,19 +66,18 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
   Real threshold; //!< Brief fractional anisotropy decision barrier for cylinder (above) or sphere (below)
   double *mx, *my, *mz; //!< Brief x,y,z compoentents of the diffusion tensor orientations
 
-  //  if (rank==0) printroot("Loading model map ...\n");
   flg = arghandler.GetArg("-modelmap", filepath);
   if (!flg) {
-    //    if (rank==0) printroot("Model map file not specified\n");
     return false;
   }
-  //  if (rank==0) printroot("   file: %s\n", filepath);
 
   // open file for reading
   err = MPI_File_open(MPI_COMM_SELF,
                       filepath, MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
-  //if (err) {
-  //  if (rank==0) printroot("Could not open model mask file"); return false;}
+  if (err) {
+   // if (rank==0) printroot("Could not open model mask file"); 
+   return false;
+  }
 
   // check endianness
   checkEndianness(fptr, flgByteSwap);
@@ -114,7 +113,7 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
   mz = reinterpret_cast<double*>(calloc(dspec.N, sizeof(double)));
 
   if (mx == NULL || my == NULL || mz == NULL) {
-    //    if (rank==0) printroot("Not enough memory available.");
+    // if (rank==0) printroot("Not enough memory available.");
     return false;
   }
 
@@ -134,8 +133,6 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
   flg = arghandler.GetArg("-mt", threshold);
   if (!flg) threshold = 0.2;
 
-  //  if (rank==0) printroot("   threshold = %0.3f\n", threshold);
-
   // CREATE MASK
   mask = reinterpret_cast<int*>(calloc(dspec.N, sizeof(int)));
 
@@ -144,10 +141,8 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
     mask[i] = (sqrt(mx[i]*mx[i] + my[i]*my[i] + mz[i]*mz[i]) >
                threshold) ? ix++ : -1;
   }
-  printroot("number of cylinders from modelmask:%d\n",ix);
   // GATHER X Y AND Z ARRAYS
   ncyls = ix;
-  //  if (rank==0) printroot("   number cylinders = %d\n", ncyls);
   x = reinterpret_cast<Real*>(calloc(ncyls, sizeof(Real)));
   y = reinterpret_cast<Real*>(calloc(ncyls, sizeof(Real)));
   z = reinterpret_cast<Real*>(calloc(ncyls, sizeof(Real)));
@@ -158,7 +153,6 @@ bool ModelMap::Create(DataSpec &dspec, const ArgHandler &arghandler) {
       z[mask[i]] = mz[i];
     }
   }
-  //  if (rank==0) printroot("   ix = %d\n", ix);
   free(mx);
   free(my);
   free(mz);
