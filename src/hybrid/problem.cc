@@ -57,6 +57,14 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   // Create AtAx_b array
   if (rank==0) printroot("   Creating AtAx_b array ...\n");
   AtAx_b = (Real*) calloc(dspec.nFG, sizeof(Real));
+
+#ifdef USE_FOURIER_SPHERES
+  if (rank==0) printroot("   Creating Ax_spheres array ...\n");
+  Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
+  if (rank==0) printroot("   Creating AtAx_spheres array ...\n");
+  AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
+
+#endif 
     
   //==================================================================================================================
   // Create Dx array
@@ -281,6 +289,13 @@ void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
   Dx = (Real*) calloc(dspec.range, sizeof(Real));
   double M = (double)kernel.modelmap.ncyls * dspec.range * sizeof(Real);
   cylColumns = NULL;
+
+#ifdef USE_FOURIER_SPHERES
+  if (rank==0) printroot("   Reallocating Ax_spheres array ...\n");
+  Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
+  if (rank==0) printroot("   Reallocating AtAx_spheres array ...\n");
+  AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
+#endif
   //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
   if (1)  //Force cylinder calc on the fly for testing
   {

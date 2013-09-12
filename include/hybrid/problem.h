@@ -53,6 +53,10 @@ class Problem {
 
   Real *Ax_b;  
   Real *AtAx_b;
+#ifdef USE_FOURIER_SPHERES
+  Real *Ax_spheres;
+  Real *AtAx_spheres;
+#endif
   Real *Dx;
   Real *DtDx;
   Real *x;

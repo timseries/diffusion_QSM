@@ -60,6 +60,9 @@ extern "C" {
 #include <omp.h>
 #endif
 
+#ifdef USE_FOURIER_SPHERES
+#include <fftw3-mpi.h>
+#endif
 
 using ::util::checkVersion;
 using ::util::checkEndianness;
@@ -152,6 +155,9 @@ void Process::StartMPI(int argc, char** args) {
    hpmInit();
 //   hpmStart("main function");
  #endif
+// #ifdef USE_FOURIER_SPHERES
+// fftw_mpi_init();
+// #endif
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank==0) printroot("\n------------------------------------------\n");
@@ -737,19 +743,22 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     if (dir) {
         memset(P->Ax_b, 0, (P->dspec.range) * sizeof(Real));
         memset(P->Dx, 0, (P->dspec.range) * sizeof(Real));
+        #ifdef USE_FOURIER_SPHERES
+        memset(P->Ax_spheres, 0, (P->dspec.range) * sizeof(Real));
+        #endif
       }else{
         memset(P->AtAx_b, 0, (P->dspec.nFG) * sizeof(Real));
         memset(P->DtDx, 0, (P->dspec.nFG) * sizeof(Real));
+        #ifdef USE_FOURIER_SPHERES
+        memset(P->AtAx_spheres, 0, (P->dspec.nFG) * sizeof(Real));
+        #endif
     }
     int index1=0;
     int index2=0;
     int numcyls=0;
     int numspheres=0;
 #ifdef USE_OPENMP
-    if (rank==0 && iteration==0) printroot("Num of CPU: %d\n", omp_get_num_procs());
-    if (rank==0 && iteration==0) printroot("Max threads: %d\n", omp_get_max_threads());
     chunk=P->dspec.nFG/omp_get_max_threads();
-    if (rank==0 && iteration==0) printroot("Chunk size: %d\n", chunk);
 #endif
 #pragma omp parallel shared(nthreads,chunk,dir) private(tid,o,p,ox,oy,oz,px,py,pz,rx,ry,rz,_rx,_ry,_rz,mix,index1,index2,numcyls,numspheres) if (OPENMP)
     {
@@ -808,7 +817,16 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             // mix = kernel.modelmap.mask[P->FGindices[o]];
             mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
             if (mix == -1) { // spherical kernel
+#ifdef USE_FOURIER_SPHERES
+              if (o==0) / only need to do this addition once
+              if (dir) {
+                result_fidelity[index2] += P->Ax_spheres[index2];
+              } else {
+                result_fidelity[index2] += P->AtAx_spheres[index2];
+              }
+#else
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
+#endif
               workmatrix[p]+=SPHERICAL_WORK;
             }
             else if (P->PreCalcCylinders) {

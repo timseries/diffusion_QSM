@@ -39,6 +39,10 @@ LDFLAGS += -fopenmp
 endif
 endif 
 
+ifdef fourier_spheres
+CPPFLAGS += DUSE_FOURIER_SPHERES
+endif
+
 ifdef debug
 #CPPFLAGS +=  -Wall -g
 CPPFLAGS +=  -g
