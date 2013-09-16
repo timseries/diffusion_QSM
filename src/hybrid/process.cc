@@ -379,6 +379,7 @@ bool Process::FullPass() {
   // Create the problem specific arrays arrays....
   P = new Problem(kernel, dspec, arghandler, tau, alpha, beta, rank);
   P->UniformFGIndices(mask, rank, kernel, dspec);
+  FGindicesUniform=P->FGindicesUniform;
   //==================================================================================================================
   // Point to the problem foreground indices array 
   FGindices=P->FGindices;
@@ -491,12 +492,17 @@ bool Process::FullPass() {
   double wall_time = MPI_Wtime();
 #ifdef USE_FOURIER_SPHERES
 // solve the spherical deconvotion in the Fourier domain
+  if (rank==0) printroot("duplicating deltab for fourier transforms \n");
   memcpy(P->deltab_fft_in,deltab,dspec.N);
+  if (rank==0) printroot("solving in fourier domain \n");
   P->SolveFourierSpheres();
-    if (rank==0) printroot("Solving for x, spheres only... \n");
-    for (o = 0; o < P->dspec.nFG; o++) {
-      P->x[P->FGindicesUniform[o]]=P->deltab_fft_in[P->FGindicesUniform[o]];
+  if (rank==0) printroot("Solving for x, spheres only... \n");
+  for (o = 0; o < dspec.nFG; o++) {
+    mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
+    if (mix==-1){
+      P->x[o]=P->deltab_fft_in[P->FGindicesUniform[o]]/dspec.N;
     }
+  }
 #endif
   do {
 
@@ -549,11 +555,11 @@ bool Process::FullPass() {
     if (iteration <=1) {
       MPI_Allreduce(MPI_IN_PLACE, dspec.workmatrix, P->dspec.N, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       dspec.AllocatePartitions(true);
+      if (rank==0) printroot("reallocating\n");
       P->Reallocate(kernel,dspec);
       //do this in dataspec method
       if (!loadDeltaB()) printroot("error reading in reallocated deltab\n");
       dspec.workmatrix = (int*) calloc(dspec.N, sizeof(int));
-      if (rank==0) printroot("reallocating\n");
       printroot("rank: %d\n",rank);
       printroot("dspec start: %d\n", dspec.start);
       printroot("dspec end: %d\n", dspec.end);
@@ -751,15 +757,15 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     if (dir) {
         memset(P->Ax_b, 0, (P->dspec.range) * sizeof(Real));
         memset(P->Dx, 0, (P->dspec.range) * sizeof(Real));
-        #ifdef USE_FOURIER_SPHERES
-        memset(P->Ax_spheres, 0, (P->dspec.range) * sizeof(Real));
-        #endif
+        // #ifdef USE_FOURIER_SPHERES
+        // memset(P->Ax_spheres, 0, (P->dspec.range) * sizeof(Real));
+        // #endif
       }else{
         memset(P->AtAx_b, 0, (P->dspec.nFG) * sizeof(Real));
         memset(P->DtDx, 0, (P->dspec.nFG) * sizeof(Real));
-        #ifdef USE_FOURIER_SPHERES
-        memset(P->AtAx_spheres, 0, (P->dspec.nFG) * sizeof(Real));
-        #endif
+        // #ifdef USE_FOURIER_SPHERES
+        // memset(P->AtAx_spheres, 0, (P->dspec.nFG) * sizeof(Real));
+        // #endif
     }
     int index1=0;
     int index2=0;

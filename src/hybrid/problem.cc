@@ -65,13 +65,16 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   AtAx_b = (Real*) calloc(dspec.nFG, sizeof(Real));
 
 #ifdef USE_FOURIER_SPHERES
-  if (rank==0) printroot("   Creating deltab for fftw array ...\n");
+  // if (rank==0) printroot("   Creating deltab for fftw array ...\n");
+  // deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
+  // if (rank==0) printroot("   Creating Ax_spheres array ...\n");
+  // Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
+  // if (rank==0) printroot("   Creating AtAx_spheres array ...\n");
+  // AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
+  deltab_fft_N=dspec.size[2]*dspec.size[1]*(dspec.size[0]/2+1);
+  deltab_fft_out=fftwf_alloc_complex(deltab_fft_N);
+  if (rank==0) printroot("Allocating fft temporary variable...\n");
   deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
-  if (rank==0) printroot("   Creating Ax_spheres array ...\n");
-  Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
-  if (rank==0) printroot("   Creating AtAx_spheres array ...\n");
-  AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
-
 #endif 
     
   //==================================================================================================================
@@ -115,7 +118,7 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
   if (1)  //Force cylinder calc on the fly for testing
   {
-    printf("Require %.0f bytes for cylColumns array, attempting allocation...", M);
+    if (rank==0) printroot("Require %.0f bytes for cylColumns array, attempting allocation...\n", M);
     cylColumns = (Real*) malloc(M);
   }
   if (cylColumns == NULL) {
@@ -127,15 +130,15 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
     PreCalcCylinders = true;
   }
 
-  //create the fft plan here
+  //create the fft plan here and allocate the fftw arrayws
 #ifdef USE_FOURIER_SPHERES
   // using column major ordering, hence reverse specification of dimension
+  if (rank==0) printroot("Creating fftw plans...\n");
 deltab_fft_plan_forward=fftwf_plan_dft_r2c_3d(dspec.size[2], dspec.size[1], dspec.size[0],
                                               deltab_fft_in, deltab_fft_out, FFTW_MEASURE);
 deltab_fft_plan_inverse=fftwf_plan_dft_c2r_3d(dspec.size[2], dspec.size[1], dspec.size[0],
                                               deltab_fft_out,deltab_fft_in, FFTW_MEASURE);
 //allocate and initialize deltab_fft_in
-deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
 #endif
   
   /* Init OpenCL */
@@ -336,30 +339,49 @@ void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
 void Problem::SolveFourierSpheres(){
 
 
+  // for (int i=0; i< dspec.N; i++){
+  //   printroot("deltab_fft_orig: %0.3e\n",deltab_fft_in[i]);
+  // }
   //compute the forward transform of deltab
+
   fftwf_execute(deltab_fft_plan_forward);
 // get the size of the transformed data...
-int deltab_fft_N=dspec.size[2]*dspec.size[1]*(dspec.size[0]/2+1);
 int xoffset=dspec.size[2]*dspec.size[1];
 int yoffset=dspec.size[2];
-int F_s_scaled=0;
+Real F_s_scaled=0;
 int kx,ky,kz;
+Real denom=0;
+// initialize 
 
  // divide by the fft of spherical kernel F_s, and renormalize the data (which FFTW doesn't do)
 for (int k_index = 0; k_index < deltab_fft_N; k_index++) {
     // using row-major indexing here...
+    // printroot("started inversion...%d:  \n",k_index);
     kx = k_index / xoffset;
     ky = (k_index - kx * xoffset) / yoffset;
     kz = k_index - ky *  yoffset - kx * xoffset - 1;			    
-    F_s_scaled=dspec.N*(1/3.0-kz*kz/(kx*kx+ky*ky+kz*kz));
-    deltab_fft_out[0][k_index]/=F_s_scaled;
-    deltab_fft_out[1][k_index]/=F_s_scaled;
-  }
-// conpute the inverse transform of delta_b/F_s
-  fftwf_execute(deltab_fft_plan_inverse);
-
+    denom=(kx*kx+ky*ky+kz*kz);
+    if (denom==0) {
+      F_s_scaled=1/3.0;
+    } else {
+      F_s_scaled=(1/3.0-kz*kz/denom);
+    }
+    if (F_s_scaled<1) {
+      F_s_scaled=1;
+    }
+    //   printroot("F_s_scaled: %0.3e\n",F_s_scaled);
+    // printroot("deltab_fft_out[0]...%0.3e:  \n",deltab_fft_out[k_index][0]);
+    // printroot("deltab_fft_/out[1]...%0.3e:  \n",deltab_fft_out[k_index][1]);
+    deltab_fft_out[k_index][0]/=F_s_scaled; //real
+    deltab_fft_out[k_index][1]/=F_s_scaled; //imaginary
 }
+// conpute the inverse transform of delta_b/F_s
 
+  fftwf_execute(deltab_fft_plan_inverse);
+  // for (int i=0; i< dspec.N; i++){
+  //   printroot("deltab_fft: %0.3e\n",deltab_fft_in[i]/dspec.N);
+  // }
+}
 #endif
 Problem::~Problem() {
   free(Ax_b);

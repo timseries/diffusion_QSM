@@ -66,6 +66,7 @@ class Problem {
   fftwf_complex *deltab_fft_out;
   fftwf_plan deltab_fft_plan_forward;
   fftwf_plan deltab_fft_plan_inverse;
+  int deltab_fft_N;
 #endif
   Real *Dx;
   Real *DtDx;
