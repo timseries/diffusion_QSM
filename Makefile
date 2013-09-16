@@ -58,6 +58,9 @@ LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc_r -lbgpm
 else
 LDFLAGS += -L/bgsys/ibmhpc/ppedev.hpct/lib64 -lhpc -lbgpm -qsmp=omp
 endif
+ifdef fourier_spheres
+CPPFLAGS += -I/usr/local/fftw/3.3.3-xl/include
+endif
 CPPFLAGS += -DHPM
 endif
 
