@@ -41,12 +41,18 @@
 #include "hybrid/dataspec.h"
 #include "hybrid/kernel.h"
 
+#ifdef USE_FOURIER_SPHERES
+#include <fftw3.h>
+#endif
+
+
 class Problem {
  public:
   Problem();
   Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank);
   void Reallocate(Kernel &kernel, DataSpec &dspec);
   void UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &dspec);
+  void SolveFourierSpheres();
 
   virtual ~Problem();
   DataSpec &dspec;
@@ -56,6 +62,10 @@ class Problem {
 #ifdef USE_FOURIER_SPHERES
   Real *Ax_spheres;
   Real *AtAx_spheres;
+  Real *deltab_fft_in;
+  fftwf_complex *deltab_fft_out;
+  fftwf_plan deltab_fft_plan_forward;
+  fftwf_plan deltab_fft_plan_inverse;
 #endif
   Real *Dx;
   Real *DtDx;

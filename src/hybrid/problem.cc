@@ -45,7 +45,13 @@
 
 #include <mpi.h>
 
+#ifdef USE_FOURIER_SPHERES
+#include <fftw3.h>
+#endif
+
+
 Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank) : dspec(dspec) {
+  this->dspec=dspec;
   // Get start and end of local portion of Deltab array
     
   //==================================================================================================================
@@ -59,6 +65,8 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   AtAx_b = (Real*) calloc(dspec.nFG, sizeof(Real));
 
 #ifdef USE_FOURIER_SPHERES
+  if (rank==0) printroot("   Creating deltab for fftw array ...\n");
+  deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
   if (rank==0) printroot("   Creating Ax_spheres array ...\n");
   Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
   if (rank==0) printroot("   Creating AtAx_spheres array ...\n");
@@ -118,6 +126,17 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   else {
     PreCalcCylinders = true;
   }
+
+  //create the fft plan here
+#ifdef USE_FOURIER_SPHERES
+  // using column major ordering, hence reverse specification of dimension
+deltab_fft_plan_forward=fftwf_plan_dft_r2c_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                              deltab_fft_in, deltab_fft_out, FFTW_MEASURE);
+deltab_fft_plan_inverse=fftwf_plan_dft_c2r_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                              deltab_fft_out,deltab_fft_in, FFTW_MEASURE);
+//allocate and initialize deltab_fft_in
+deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
+#endif
   
   /* Init OpenCL */
 #ifdef USE_OPENCL
@@ -291,9 +310,9 @@ void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
   cylColumns = NULL;
 
 #ifdef USE_FOURIER_SPHERES
-  if (rank==0) printroot("   Reallocating Ax_spheres array ...\n");
+  // if (rank==0) printroot("   Reallocating Ax_spheres array ...\n");
   Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
-  if (rank==0) printroot("   Reallocating AtAx_spheres array ...\n");
+  // if (rank==0) printroot("   Reallocating AtAx_spheres array ...\n");
   AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
 #endif
   //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
@@ -313,7 +332,35 @@ void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
 
 
 }
+#ifdef USE_FOURIER_SPHERES
+void Problem::SolveFourierSpheres(){
 
+
+  //compute the forward transform of deltab
+  fftwf_execute(deltab_fft_plan_forward);
+// get the size of the transformed data...
+int deltab_fft_N=dspec.size[2]*dspec.size[1]*(dspec.size[0]/2+1);
+int xoffset=dspec.size[2]*dspec.size[1];
+int yoffset=dspec.size[2];
+int F_s_scaled=0;
+int kx,ky,kz;
+
+ // divide by the fft of spherical kernel F_s, and renormalize the data (which FFTW doesn't do)
+for (int k_index = 0; k_index < deltab_fft_N; k_index++) {
+    // using row-major indexing here...
+    kx = k_index / xoffset;
+    ky = (k_index - kx * xoffset) / yoffset;
+    kz = k_index - ky *  yoffset - kx * xoffset - 1;			    
+    F_s_scaled=dspec.N*(1/3.0-kz*kz/(kx*kx+ky*ky+kz*kz));
+    deltab_fft_out[0][k_index]/=F_s_scaled;
+    deltab_fft_out[1][k_index]/=F_s_scaled;
+  }
+// conpute the inverse transform of delta_b/F_s
+  fftwf_execute(deltab_fft_plan_inverse);
+
+}
+
+#endif
 Problem::~Problem() {
   free(Ax_b);
   free(AtAx_b);
@@ -323,6 +370,15 @@ Problem::~Problem() {
   free(FGindices);
   free(FGindicesUniform);
   free(cylColumns);
+
+#ifdef USE_FOURIER_SPHERES
+  fftwf_destroy_plan(deltab_fft_plan_forward);
+  fftwf_destroy_plan(deltab_fft_plan_inverse);
+  fftwf_free(deltab_fft_out);
+  free(Ax_spheres);
+  free(AtAx_spheres);
+  free(deltab_fft_in);
+#endif
 
 #ifdef USE_OPENCL
   //Free memory

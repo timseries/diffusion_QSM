@@ -140,7 +140,7 @@ bool DataSpec::Create(const ArgHandler &arghandler, int rank, int mpi_world_size
 
 void DataSpec::AllocatePartitions(bool orb_flag) {
   int ElsPerProc=0;
-  workmatrix = (int*) calloc(N, sizeof(int));
+  // workmatrix = (int*) calloc(N, sizeof(int));
   orb_divisions_size=mpi_world_size-2;
   orb_divisions=(int*) calloc(orb_divisions_size, sizeof(int));
 

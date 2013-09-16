@@ -61,7 +61,7 @@ extern "C" {
 #endif
 
 #ifdef USE_FOURIER_SPHERES
-#include <fftw3-mpi.h>
+#include <fftw3.h>
 #endif
 
 using ::util::checkVersion;
@@ -489,7 +489,15 @@ bool Process::FullPass() {
   int dp = 1; //kernel.halfsize + 1;
 
   double wall_time = MPI_Wtime();
-
+#ifdef USE_FOURIER_SPHERES
+// solve the spherical deconvotion in the Fourier domain
+  memcpy(P->deltab_fft_in,deltab,dspec.N);
+  P->SolveFourierSpheres();
+    if (rank==0) printroot("Solving for x, spheres only... \n");
+    for (o = 0; o < P->dspec.nFG; o++) {
+      P->x[P->FGindicesUniform[o]]=P->deltab_fft_in[P->FGindicesUniform[o]];
+    }
+#endif
   do {
 
     tIterStart1 = MPI_Wtime();
@@ -818,12 +826,13 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
             if (mix == -1) { // spherical kernel
 #ifdef USE_FOURIER_SPHERES
-              if (o==0) / only need to do this addition once
-              if (dir) {
-                result_fidelity[index2] += P->Ax_spheres[index2];
-              } else {
-                result_fidelity[index2] += P->AtAx_spheres[index2];
-              }
+              // if (o==0) // only need to do this addition once
+              // if (dir) {
+              //   result_fidelity[index2] += P->Ax_spheres[index2];
+              // } else {
+              //   result_fidelity[index2] += P->AtAx_spheres[index2];
+              // }
+              //fourier deconvolution result
 #else
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
 #endif
@@ -839,7 +848,7 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             }
             else {
               result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
-              workmatrix[p]=CYLINDRICAL_CALC_WORK;
+              workmatrix[p]+=CYLINDRICAL_CALC_WORK;
             }
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {
