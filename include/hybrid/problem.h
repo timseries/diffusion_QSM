@@ -52,26 +52,24 @@ class Problem {
   Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank);
   void Reallocate(Kernel &kernel, DataSpec &dspec);
   void UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &dspec);
-  void SolveFourierSpheres();
-
   virtual ~Problem();
   DataSpec &dspec;
 
   Real *Ax_b;  
   Real *AtAx_b;
 #ifdef USE_FOURIER_SPHERES
-  Real *Ax_spheres;
-  Real *AtAx_spheres;
-  Real *deltab_fft_in;
-  fftwf_complex *deltab_fft_out;
-  fftwf_plan deltab_fft_plan_forward;
-  fftwf_plan deltab_fft_plan_inverse;
-  int deltab_fft_N;
+  Real *Ax_spheres; ///< Store N-sized version of x for computing Ax in Fourier domain for spheres.
+  fftwf_complex *x_full_fft_out; ///< FFT of \f$ \mathbf{x} \f$.
+  fftwf_plan x_fft_plan_forward; ///< FFTW plan for FFT of \f$ \mathbf{x} \f$.
+  fftwf_plan x_fft_plan_inverse; ///< FFTW plan for IFFT of \f$ \mathbf{x} \f$.
+  Real *AtAx_spheres; ///< Store N-sized version of Ax_b. Copy necessary to operate in the Fourier domain and the spatial domain.
+  fftwf_complex *Ax_b_fft; ///< FFT of \f$ \mathbf{Ax-b} \f$.
+  fftwf_plan Ax_b_fft_plan_forward; ///< FFTW plan for FFT of \f$\mathbf{\Detla B}\f$.
+  fftwf_plan Ax_b_fft_plan_inverse; ///< FFTW plan for IFFT of \f$\mathbf{\Detla B}\f$.
 #endif
-  Real *Dx;
-  Real *DtDx;
-  Real *x;
-
+  Real *Dx; ///< Matrix to store the discrete Laplacian kernel.
+  Real *DtDx; ///< Matrix to store the inverse discrete Laplacian kernel.
+  Real *x; ///< The current solution \$f \mathbf{x} \$f of \$f \mathbf{y=Ax+b} \$f. 
   int *workmatrix; //cumulative work matrix over the volume
   
   bool PreCalcCylinders;

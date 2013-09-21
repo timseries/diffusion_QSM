@@ -93,7 +93,7 @@ bool Process::Init(int argc, char** args) {
   printroot("rank: %d\n",rank);
   printroot("dspec start: %d\n", dspec.start);
   printroot("dspec end: %d\n", dspec.end);
-  if (rank==0) printroot("everyone finished creating the modelmap\n");
+
   myout.DistrArray(deltab, dspec.range, 3, dspec.size, "deltab");
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
   // initialize chi vector
@@ -163,7 +163,6 @@ void Process::StartMPI(int argc, char** args) {
   if (rank==0) printroot("\n------------------------------------------\n");
   if (rank==0) printroot("MPI Environment\n");
   if (rank==0) printroot("Number of processes: %d\n", size);
-  if (rank==0) printroot("This rank: %d\n", rank);
 }
 bool Process::loadDeltaB() {
   // reads in DeltaB to a vector
@@ -196,13 +195,9 @@ bool Process::loadDeltaB() {
   MPI_File_read(fptr, buf, 11, MPI_DOUBLE, &status);
   if (rank==0) printroot("Byte-swapping header...\n");
   if (flgByteSwap) byteswap((char*)buf,11,sizeof(double));
-  // create the dataspec here
-  if (rank==0) printroot("Creating dataspec...\n");
-  MPI_Barrier(MPI_COMM_WORLD);
-  if (rank==0) printroot("everyone finsished creating the dspec...\n");
-
   if (rank==0) printroot("Creating modelmap...\n");
   if (!kernel.modelmap.Create(dspec,arghandler)) goto exitnow;
+  if (rank==0) printroot("Allocating and initializing deltab...\n");
   deltab = (Real*) calloc(dspec.range, sizeof(Real));
   err=MPI_File_seek(fptr, dspec.start*sizeof(double), MPI_SEEK_CUR);
   if (err) printroot("rank:%d could't seek file, error:%d", rank, err);
@@ -232,7 +227,6 @@ MPI_Barrier(MPI_COMM_WORLD);
   if (rank==0) printroot("   size = %d %d %d\n", dspec.size[0],
             dspec.size[1], dspec.size[2]);
   if (rank==0) printroot("   number of elements = %d\n", dspec.N);
-  printroot("rank: %d, dspec.start: %d, dspec.end: %d \n", rank, dspec.start, dspec.end);
   free(filepath);
   return true;
 exitnow:
@@ -258,7 +252,6 @@ bool Process::loadMask() {
 
   mask = (bool*) calloc(dspec.N, sizeof(bool));
   if (rank == 0) {
-    printroot("trying to read mask in rank 0...\n");
     err = MPI_File_open(MPI_COMM_SELF, filepath,
                         MPI_MODE_RDONLY, MPI_INFO_NULL, &fptr);
     if (err) {
@@ -286,8 +279,6 @@ bool Process::loadMask() {
     MPI_File_close(&fptr);
   }
   MPI_Bcast(mask, dspec.N, MPI_CHAR, 0, MPI_COMM_WORLD);
-  if (rank==0)	printroot("rank:%d, broadcast finished\n",rank);
-  //TODO(timseries): do this somewhere else
   dspec.nBG = 0; dspec.nFG = 0;
   for (int i=0; i<dspec.N; i++) {
     if (mask[i])
@@ -422,14 +413,12 @@ bool Process::FullPass() {
   // Create cylColumns array
   cylColumns = P->cylColumns;
   if (cylColumns == NULL) {
-    printroot("   Not enough memory to pre-calculate cylinder kernels.\n");
-    printroot("   Cylinder kernels will be calculated on-the-fly, which will take longer to process.\n");
+    if (rank==0) printroot("   Not enough memory to pre-calculate cylinder kernels.\n");
+    if (rank==0) printroot("   Cylinder kernels will be calculated on-the-fly, which will take longer to process.\n");
     P->PreCalcCylinders = false;
   }
   else {
-    
-    printroot("   Creating cylColumns array ...\n");
-    
+    if (rank==0) printroot("   Creating cylColumns array ...\n");
     // Initialise cylColumns array
     for (p = dspec.start; p < dspec.end; p++) {
       
@@ -439,7 +428,7 @@ bool Process::FullPass() {
       
       for (o = 0; o < dspec.nFG; o++) {
         //        mix = kernel.modelmap.mask[FGindices[o]];
-               mix = kernel.modelmap.mask[FGindicesUniform[o]];
+        mix = kernel.modelmap.mask[FGindicesUniform[o]];
         if (mix != -1) {
           oz = FGindicesUniform[o] / dspec.zoffset;
           oy = (FGindicesUniform[o] - oz * dspec.zoffset) / dspec.yoffset;
@@ -490,27 +479,32 @@ bool Process::FullPass() {
   int dp = 1; //kernel.halfsize + 1;
 
   double wall_time = MPI_Wtime();
-#ifdef USE_FOURIER_SPHERES
-// solve the spherical deconvotion in the Fourier domain
-  if (rank==0) printroot("duplicating deltab for fourier transforms \n");
-  memcpy(P->deltab_fft_in,deltab,dspec.N);
-  if (rank==0) printroot("solving in fourier domain \n");
-  P->SolveFourierSpheres();
-  if (rank==0) printroot("Solving for x, spheres only... \n");
-  for (o = 0; o < dspec.nFG; o++) {
-    mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
-    if (mix==-1){
-      P->x[o]=P->deltab_fft_in[P->FGindicesUniform[o]]/dspec.N;
-    }
-  }
-#endif
   do {
 
     tIterStart1 = MPI_Wtime();
     if (rank==0) printroot("      Iteration %d: ", iteration);
 
-    // printroot("rank: %d first multadd start :%.3f\n", rank, MPI_Wtime());
-    // Ax_b = A * x - b
+    //////////////////////
+    // Ax_b = A * x - b //
+    //////////////////////
+
+// solve in the Fourier domain for the spherical portion of the kernel first
+#ifdef USE_FOURIER_SPHERES
+    //copy current x (N_fg)to Ax_s (N) before performing 
+    memset(P->Ax_spheres, 0, dspec.N*sizeof(Real));
+    for (o = 0; o < dspec.nFG; o++) {
+      P->Ax_spheres[P->FGindices[o]]=P->x[o];
+    }
+    //perform the fft of x (Ax_spheres)
+    fftwf_execute(P->x_fft_plan_forward);
+    //perform the Ax product for spheres only in the fourier domain, reuse x_full_fft_out
+    for (int k = 0; k < dspec.N_fft; k++) {
+      P->x_full_fft_out[k][0]*=kernel.skernel_fft[k][0];
+      P->x_full_fft_out[k][1]*=kernel.skernel_fft[k][1];
+    }
+    //perform the inverse fft of the product
+    fftwf_execute(P->x_fft_plan_inverse);
+#endif
     MultAdd(P->Ax_b,P->Dx,P->x,P->x,deltab,dspec.workmatrix,true,iteration);
     // printroot("rank: %d first multadd finish:%.3f\n", rank, MPI_Wtime());
     tIterEnd1 = MPI_Wtime();
@@ -520,7 +514,27 @@ bool Process::FullPass() {
     printroot("first_multadd_iteration: %d, rank: %d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
     tIterStart2 = MPI_Wtime();
 
-    // DtDx = D' * Dx
+
+#ifdef USE_FOURIER_SPHERES
+    //copy current Ax_b to AtAx_spheres
+    memset(P->AtAx_spheres, 0, dspec.N*sizeof(Real));
+    for (o = dspec.start; o < dspec.end; o++) {
+      P->AtAx_spheres[o]=P->Ax_b[o - dspec.start];
+    }
+    //perform the fft of Ax (AtAx_sphers)
+    fftwf_execute(P->Ax_b_fft_plan_forward);
+         //perform the Ax product for spheres only in the fourier domain, reuse x_full_fft_out
+         //note the minus sign on the complex value for the conjugate product
+    for (int k = 0; k < dspec.N_fft; k++) {
+      P->Ax_b_fft[o][0]*=kernel.skernel_fft[k][0];
+      P->Ax_b_fft[o][1]*=-kernel.skernel_fft[k][1];
+    }
+    //since we've taken the fourier transform of only a part of Ax_b and multiplied by a constant, to get the 
+             //Fourier transform of Ax_b we need to sum accross processes. We're using linearity of fourier transform here.
+    MPI_Allreduce(MPI_IN_PLACE, P->Ax_b_fft, P->dspec.N_fft, MPI_COMPLEX, MPI_SUM, MPI_COMM_WORLD);             
+    //perform the inverse fft of the product
+    fftwf_execute(P->Ax_b_fft_plan_inverse);
+#endif
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,dspec.workmatrix,false,iteration);
 
 
@@ -540,6 +554,9 @@ bool Process::FullPass() {
     tmins = floor(tsecs/60);
     tsecs -= tmins*60;
     printroot("first allreduce iteration: %d, rank: %d (%ldmin %lds) \n", iteration, rank, tmins, tsecs);
+         //after computing AtAx for the cylinders, do the same for the spheres here
+
+
     tIterStart2 = MPI_Wtime();
     MPI_Allreduce(MPI_IN_PLACE, P->DtDx, P->dspec.nFG, MPI_Real, MPI_SUM, MPI_COMM_WORLD);
     tIterEnd2 = MPI_Wtime();
@@ -552,19 +569,19 @@ bool Process::FullPass() {
     tsecs -= tmins*60;
 
 //reallocate dspec on the first few iterations based on workmatrix estimate
-    if (iteration <=1) {
-      MPI_Allreduce(MPI_IN_PLACE, dspec.workmatrix, P->dspec.N, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      dspec.AllocatePartitions(true);
-      if (rank==0) printroot("reallocating\n");
-      P->Reallocate(kernel,dspec);
-      //do this in dataspec method
-      if (!loadDeltaB()) printroot("error reading in reallocated deltab\n");
-      dspec.workmatrix = (int*) calloc(dspec.N, sizeof(int));
-      printroot("rank: %d\n",rank);
-      printroot("dspec start: %d\n", dspec.start);
-      printroot("dspec end: %d\n", dspec.end);
+    // if (iteration <=1) {
+    //   MPI_Allreduce(MPI_IN_PLACE, dspec.workmatrix, P->dspec.N, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    //   dspec.AllocatePartitions(true);
+    //   if (rank==0) printroot("reallocating\n");
+    //   P->Reallocate(kernel,dspec);
+    //   //do this in dataspec method
+    //   if (!loadDeltaB()) printroot("error reading in reallocated deltab\n");
+    //   dspec.workmatrix = (int*) calloc(dspec.N, sizeof(int));
+    //   printroot("rank: %d\n",rank);
+    //   printroot("dspec start: %d\n", dspec.start);
+    //   printroot("dspec end: %d\n", dspec.end);
       
-    }
+    // }
 
     // Calculate new x and rms values
 
@@ -767,6 +784,21 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         // memset(P->AtAx_spheres, 0, (P->dspec.nFG) * sizeof(Real));
         // #endif
     }
+    //add the result form the fourier k-space product here, if used
+#ifdef USE_FOURIER_SPHERES
+      //add the previous result from using k-space spherical kernel, and divide by N because of FFTW scaling
+      if (dir) {
+        for (p = P->dspec.start; p < P->dspec.end; p++) {
+          result_fidelity[p - P->dspec.start] += P->Ax_spheres[p]/dspec.N;
+        }
+      } else {
+        for (o = 0; o < P->dspec.nFG; p++){
+          if (kernel.modelmap.mask[P->FGindicesUniform[o]]==-1) {;
+            result_fidelity[o] += P->AtAx_spheres[P->FGindicesUniform[o]]/dspec.N;
+          }
+        }
+      }
+#endif
     int index1=0;
     int index2=0;
     int numcyls=0;
@@ -831,15 +863,8 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
             // mix = kernel.modelmap.mask[P->FGindices[o]];
             mix = kernel.modelmap.mask[P->FGindicesUniform[o]];
             if (mix == -1) { // spherical kernel
-#ifdef USE_FOURIER_SPHERES
-              // if (o==0) // only need to do this addition once
-              // if (dir) {
-              //   result_fidelity[index2] += P->Ax_spheres[index2];
-              // } else {
-              //   result_fidelity[index2] += P->AtAx_spheres[index2];
-              // }
-              //fourier deconvolution result
-#else
+#ifndef USE_FOURIER_SPHERES
+              //do the spherical convolution here
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
 #endif
               workmatrix[p]+=SPHERICAL_WORK;
@@ -870,7 +895,7 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
         result_fidelity[p] -= addend[p];
       }
     }//end if (dir)
-    if (rank==0) printroot("tid:%d numcyls:%d numspheres:%d\n", tid, numcyls, numspheres);
+    // if (rank==0) printroot("tid:%d numcyls:%d numspheres:%d\n", tid, numcyls, numspheres);
     numcyls=0;
     numspheres=0;
     }//end omp parallel section

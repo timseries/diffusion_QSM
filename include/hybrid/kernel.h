@@ -39,6 +39,10 @@
 #include "hybrid/dataspec.h"
 #include "hybrid/modelmap.h"
 
+#ifdef USE_FOURIER_SPHERES
+#include <fftw3.h>
+#endif
+
 class Kernel {
  public:
   Kernel();
@@ -55,6 +59,11 @@ class Kernel {
 
   models model;
   Real *skernel, *ckernel;
+#ifdef USE_FOURIER_SPHERES
+  Real *skernel_size_N; ///< Temporary array used to create the FFT of skernel.
+  fftwf_complex *skernel_fft; ///< FFT of spherical kernel.
+  fftwf_plan skernel_plan_forward; ///< FFTW plan to do forward transform of spherical kernel.
+#endif
   Real *kernel;
   Real threshold;
   Real B0;

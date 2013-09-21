@@ -65,16 +65,15 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   AtAx_b = (Real*) calloc(dspec.nFG, sizeof(Real));
 
 #ifdef USE_FOURIER_SPHERES
-  // if (rank==0) printroot("   Creating deltab for fftw array ...\n");
-  // deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
-  // if (rank==0) printroot("   Creating Ax_spheres array ...\n");
-  // Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
-  // if (rank==0) printroot("   Creating AtAx_spheres array ...\n");
-  // AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
-  deltab_fft_N=dspec.size[2]*dspec.size[1]*(dspec.size[0]/2+1);
-  deltab_fft_out=fftwf_alloc_complex(deltab_fft_N);
-  if (rank==0) printroot("Allocating fft temporary variable...\n");
-  deltab_fft_in = (Real*) calloc(dspec.N, sizeof(Real));
+  if (rank==0) printroot("   Creating Ax_spheres array ...\n");
+  Ax_spheres = (Real*) calloc(dspec.N, sizeof(Real));
+  if (rank==0) printroot("   Creating AtAx_spheres array ...\n");
+  AtAx_spheres = (Real*) calloc(dspec.N, sizeof(Real));
+  if (rank==0) printroot("Allocating fft temporary variable x...\n");
+  x_full_fft_out=fftwf_alloc_complex(dspec.N_fft);
+  if (rank==0) printroot("Allocating fft temporarary variable for Ax...\n");
+  AtAx_spheres = (Real*) calloc(dspec.N, sizeof(Real));
+  Ax_b_fft=fftwf_alloc_complex(dspec.N_fft);
 #endif 
     
   //==================================================================================================================
@@ -103,13 +102,13 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
 
   // Create foreground indices array
   if (rank==0) printroot("   Creating uniform foreground indices array ...\n");
-  FGindicesUniform = (int*) calloc(dspec.N, sizeof(int));
+  FGindicesUniform = (int*) calloc(dspec.nFG, sizeof(int));
 
   if (rank==0) printroot("   Creating foreground cylinder indices array ...\n");
-  FGindicesCyl = (int*) calloc(dspec.N, sizeof(int));
+  FGindicesCyl = (int*) calloc(dspec.nFG, sizeof(int));
 
   if (rank==0) printroot("   Creating foreground sphere indices array ...\n");
-  FGindicesSphere = (int*) calloc(dspec.N, sizeof(int));
+  FGindicesSphere = (int*) calloc(dspec.nFG, sizeof(int));
 
   //==================================================================================================================
   // Create cylColumns array
@@ -130,14 +129,20 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
     PreCalcCylinders = true;
   }
 
-  //create the fft plan here and allocate the fftw arrayws
+  //create the fft plans here and allocate the fftw arrayws
 #ifdef USE_FOURIER_SPHERES
   // using column major ordering, hence reverse specification of dimension
   if (rank==0) printroot("Creating fftw plans...\n");
-deltab_fft_plan_forward=fftwf_plan_dft_r2c_3d(dspec.size[2], dspec.size[1], dspec.size[0],
-                                              deltab_fft_in, deltab_fft_out, FFTW_MEASURE);
-deltab_fft_plan_inverse=fftwf_plan_dft_c2r_3d(dspec.size[2], dspec.size[1], dspec.size[0],
-                                              deltab_fft_out,deltab_fft_in, FFTW_MEASURE);
+x_fft_plan_forward=fftwf_plan_dft_r2c_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                         Ax_spheres, x_full_fft_out, FFTW_MEASURE);
+x_fft_plan_inverse=fftwf_plan_dft_c2r_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                         x_full_fft_out,Ax_spheres, FFTW_MEASURE);
+Ax_b_fft_plan_forward=fftwf_plan_dft_r2c_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                         AtAx_spheres, Ax_b_fft, FFTW_MEASURE);
+Ax_b_fft_plan_inverse=fftwf_plan_dft_c2r_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                         Ax_b_fft,AtAx_spheres, FFTW_MEASURE);
+
+
 //allocate and initialize deltab_fft_in
 #endif
   
@@ -238,8 +243,8 @@ void Problem::UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &d
   //FGindices = (int*) calloc(dspec.N, sizeof(int));
   int o = 0;
   int p = 0;
-  int nFGCyls=0;
-  int nFGSpheres=0;
+  int nFGCyls = 0;
+  int nFGSpheres = 0;
   for (p = 0; p < dspec.N; p++) {
     if (mask[p]) {
       FGindices[o] = p;
@@ -281,21 +286,21 @@ void Problem::UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &d
 
   for (p = 0; p < dspec.N; p++) {
     if (mask[p]) {
-      if ((ratio<target_ratio) && (large_count<target_large_count)) { //add some from the large set
+      if ((ratio<=target_ratio) && (large_count<target_large_count)) { //add some from the large set
         FGindicesUniform[o] = larger_array[large_count];                   
         large_count++;
-      } else if ((ratio>target_ratio) && (small_count<target_small_count)){
+      } else if ((ratio>=target_ratio) && (small_count<target_small_count)){
         FGindicesUniform[o] = smaller_array[small_count];                   
         small_count++;
       } else if (large_count<target_large_count) {
         FGindicesUniform[o] = larger_array[large_count];                   
-        large_count=large_count+(target_large_count-large_count>0);
+        large_count=large_count++;
       } else if (small_count<target_small_count){
         FGindicesUniform[o] = smaller_array[small_count];                   
-        small_count=small_count+(target_small_count-small_count>0);
+        small_count=small_count++;
       } else {
-        if (rank==0) printroot("error: index out of bounds, sum of small/large=%d, total FG number=%d\n", 
-                               small_count+large_count,dspec.nFG);
+        if (rank==0) printroot("error: index out of bounds, sum of small and large=%d, total FG number=%d, ratio: %0.3e\n", 
+                               small_count+large_count,dspec.nFG,ratio);
       }
       ratio = ((double) large_count)/small_count;
       o++;
@@ -312,12 +317,12 @@ void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
   double M = (double)kernel.modelmap.ncyls * dspec.range * sizeof(Real);
   cylColumns = NULL;
 
-#ifdef USE_FOURIER_SPHERES
-  // if (rank==0) printroot("   Reallocating Ax_spheres array ...\n");
-  Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
-  // if (rank==0) printroot("   Reallocating AtAx_spheres array ...\n");
-  AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
-#endif
+// #ifdef USE_FOURIER_SPHERES
+//   // if (rank==0) printroot("   Reallocating Ax_spheres array ...\n");
+//   Ax_spheres = (Real*) calloc(dspec.range, sizeof(Real));
+//   // if (rank==0) printroot("   Reallocating AtAx_spheres array ...\n");
+//   AtAx_spheres = (Real*) calloc(dspec.nFG, sizeof(Real));
+// #endif
   //if (M < 8000000000 / size)  //Hack, hard coded to 8GB total mem limit for now, should check GPU mem avail
   if (1)  //Force cylinder calc on the fly for testing
   {
@@ -335,54 +340,6 @@ void Problem::Reallocate(Kernel &kernel,DataSpec &dspec) {
 
 
 }
-#ifdef USE_FOURIER_SPHERES
-void Problem::SolveFourierSpheres(){
-
-
-  // for (int i=0; i< dspec.N; i++){
-  //   printroot("deltab_fft_orig: %0.3e\n",deltab_fft_in[i]);
-  // }
-  //compute the forward transform of deltab
-
-  fftwf_execute(deltab_fft_plan_forward);
-// get the size of the transformed data...
-int xoffset=dspec.size[2]*dspec.size[1];
-int yoffset=dspec.size[2];
-Real F_s_scaled=0;
-int kx,ky,kz;
-Real denom=0;
-// initialize 
-
- // divide by the fft of spherical kernel F_s, and renormalize the data (which FFTW doesn't do)
-for (int k_index = 0; k_index < deltab_fft_N; k_index++) {
-    // using row-major indexing here...
-    // printroot("started inversion...%d:  \n",k_index);
-    kx = k_index / xoffset;
-    ky = (k_index - kx * xoffset) / yoffset;
-    kz = k_index - ky *  yoffset - kx * xoffset - 1;			    
-    denom=(kx*kx+ky*ky+kz*kz);
-    if (denom==0) {
-      F_s_scaled=1/3.0;
-    } else {
-      F_s_scaled=(1/3.0-kz*kz/denom);
-    }
-    if (F_s_scaled<1) {
-      F_s_scaled=1;
-    }
-    //   printroot("F_s_scaled: %0.3e\n",F_s_scaled);
-    // printroot("deltab_fft_out[0]...%0.3e:  \n",deltab_fft_out[k_index][0]);
-    // printroot("deltab_fft_/out[1]...%0.3e:  \n",deltab_fft_out[k_index][1]);
-    deltab_fft_out[k_index][0]/=F_s_scaled; //real
-    deltab_fft_out[k_index][1]/=F_s_scaled; //imaginary
-}
-// conpute the inverse transform of delta_b/F_s
-
-  fftwf_execute(deltab_fft_plan_inverse);
-  // for (int i=0; i< dspec.N; i++){
-  //   printroot("deltab_fft: %0.3e\n",deltab_fft_in[i]/dspec.N);
-  // }
-}
-#endif
 Problem::~Problem() {
   free(Ax_b);
   free(AtAx_b);
@@ -392,14 +349,15 @@ Problem::~Problem() {
   free(FGindices);
   free(FGindicesUniform);
   free(cylColumns);
-
 #ifdef USE_FOURIER_SPHERES
-  fftwf_destroy_plan(deltab_fft_plan_forward);
-  fftwf_destroy_plan(deltab_fft_plan_inverse);
-  fftwf_free(deltab_fft_out);
   free(Ax_spheres);
+  fftwf_free(x_full_fft_out);
+  fftwf_destroy_plan(x_fft_plan_forward);
+  fftwf_destroy_plan(x_fft_plan_inverse);
   free(AtAx_spheres);
-  free(deltab_fft_in);
+  fftwf_free(Ax_b_fft);
+  fftwf_destroy_plan(Ax_b_fft_plan_forward);
+  fftwf_destroy_plan(Ax_b_fft_plan_inverse);
 #endif
 
 #ifdef USE_OPENCL

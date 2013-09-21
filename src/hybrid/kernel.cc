@@ -45,11 +45,18 @@
 #include "hybrid/dataspec.h"
 #include "hybrid/modelmap.h"
 
+#ifdef USE_FOURIER_SPHERES
+#include <fftw3.h>
+#endif
+
 Kernel::Kernel() {
   kernel = NULL;
   nnz = 0;
   _nnz = 0;
   skernel = NULL;
+#ifdef USE_FOURIER_SPHERES
+  skernel_fft=NULL;
+#endif
   ckernel = NULL;
   ctr = NULL;
   sin2beta = NULL;
@@ -83,15 +90,38 @@ void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
       }
     }
   }
-  // if (rank==0) printroot("   max value : %0.20e\n", maxkernelvalue);
   minkernelvalue = threshold*maxkernelvalue;
-  // if (rank==0) printroot("   threshold value : %0.20e\n", minkernelvalue);
   for (int i = 0; i < N; i++) {
     if (fabs(skernel[i]) < minkernelvalue) {
       skernel[i] = 0;
       nnz--;
     }
   }
+  //take the FFT of the spherical kernel here
+#ifdef USE_FOURIER_SPHERES
+  int p = 0;
+  int p_skernel = 0;
+  //copy the skernel into a full N-sized array to take the appropriately-sized FFT. 
+  //this copying is done in a circularly-shifted manner so as to avoid edge wrapping effects
+  for (int x = -halfsize; x <= halfsize; x++) {
+    for (int y = -halfsize; y <= halfsize; y++) {
+      for (int z = -halfsize; z <= halfsize; z++) {
+        p = (x+halfsize) + (y+halfsize)*yoffset + (z+halfsize)*zoffset;
+        //compute the wrapped index for skernel_size_N
+        if ((x < 0) || (y < 0) || (z < 0)) {
+          p_skernel = N;
+          p_skernel -= abs(x + y*yoffset + z*zoffset);
+        } else {
+          p_skernel = 0;
+          p_skernel += x + y*yoffset + z*zoffset;
+        }
+        skernel_size_N[p_skernel]=skernel[p];
+    }
+  }
+}
+fftwf_execute(skernel_plan_forward);
+free(skernel_size_N);
+#endif
 }
 
 // returns the number of non-zeros
@@ -201,7 +231,7 @@ bool Kernel::Create(const models &model,
     size = ceil(pow(1.0/threshold, 1.0/3.0));
   }
 
-  // if (iseven(size)) size++;
+  //ensure kernel width is odd to ensure correct centering
   if (size/2 == size/2.0) size++;
 
   long maxdatasize = dspec.size[0] > dspec.size[1] &
@@ -214,12 +244,17 @@ bool Kernel::Create(const models &model,
   halfsize = size/2;
   N = size*size*size;
   nnz = _nnz = N;
-  if (model == MODEL_SPHERICAL) {
-    skernel = reinterpret_cast<Real*>(calloc(nnz, sizeof(Real)));
-  } else {
-  //    else if (model == MODEL_CYLINDRICAL) {
-  //            ckernel = (Real*) calloc(nnz, sizeof(Real));
-  //    }
+  skernel = reinterpret_cast<Real*>(calloc(nnz, sizeof(Real)));
+#ifdef USE_FOURIER_SPHERES
+  //allocate k-space kernel skernel_fft and temporary input array skernel_size_N
+  skernel_fft = fftwf_alloc_complex(dspec.N_fft);
+  skernel_size_N = (Real*) calloc(dspec.N, sizeof(Real));
+  //create fftw plan
+  skernel_plan_forward = fftwf_plan_dft_r2c_3d(dspec.size[2], dspec.size[1], dspec.size[0],
+                                              skernel_size_N, skernel_fft, FFTW_MEASURE);
+
+#endif 
+  if (model == MODEL_MIXED) {
     skernel = reinterpret_cast<Real*>(calloc(nnz, sizeof(Real)));
     ctr = reinterpret_cast<Real*>(calloc(modelmap.ncyls, sizeof(Real)));
     sin2beta = reinterpret_cast<Real*>(

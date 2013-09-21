@@ -49,6 +49,9 @@ DataSpec::DataSpec(){
   size[1]=0;
   size[2]=0;
   N=0;
+#ifdef USE_FOURIER_SPHERES
+  N_fft=0;
+#endif
   yoffset=0;
   zoffset=0;
   orb_divisions=NULL;
@@ -112,6 +115,11 @@ bool DataSpec::Create(const ArgHandler &arghandler, int rank, int mpi_world_size
   size[0] = (int) buf[1];
   size[1] = (int) buf[2];
   size[2] = (int) buf[3];
+
+#ifdef USE_FOURIER_SPHERES
+  //use the definition provided in FFTW3.3.3 documentation p. 8 for r2c tranform.
+  N_fft=size[2]*size[1]*(size[0]/2+1);
+#endif
 
   caxis[0] = 1;
   caxis[1] = 0;

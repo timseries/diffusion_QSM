@@ -43,23 +43,26 @@ class DataSpec {
   virtual ~DataSpec();
   bool Create(const ArgHandler &arghandler, int rank, int mpi_world_size);
   void AllocatePartitions(bool orb_flag);
-  void PartitionByORB();
-  int size[3];  // data size
-  int N; // number of foxelsdelmap
-  int yoffset;
-  int zoffset;
-  int mpi_world_size; //!< Brief number of processes, used for splitting up data
-  int rank; //!< Brief the rank of the process which has this dataspec
-  int *orb_divisions; //!< Brief array of divisions from orb algorithm
-  int orb_divisions_size; //!< Size of the array orb_dvisions
-  int *workmatrix;
-  double B0;
-  double bhat[3];
-  double caxis[3];
-  int nBG;
-  int nFG;
-  unsigned start;
-  unsigned end;
-  unsigned range;
+  void PartitionByORB(); 
+  int size[3];  ///> Dimensions of the signal (x,y,z).
+  int N; ///> Total number of voxels in the \f$\mathbf{\Detla B}\f$ dataset.
+#ifdef USE_FOURIER_SPHERES
+  int N_fft; ///> Number of elements in a Fourier transformed signal of length \f$ N \f$.
+#endif
+  int yoffset; ///< Distance between succesive y indices in a column-major 3d array.
+  int zoffset; ///< Distance between succesive z indices in a column-major 3d array.
+  int mpi_world_size; ///< Number of processes, used for splitting up data
+  int rank; ///< The rank of the process which has this dataspec.
+  int *orb_divisions; ///< Array of divisions from orb algorithm.
+  int orb_divisions_size; ///< Size of the array orb_dvisions
+  int *workmatrix; ///<  Array (size N) with comulative work required to process each voxel in \f$\mathbf{B}\f$ (see ORB documentation).
+  double B0; ///< External static magnetic field \f$B_0\f$. Scalar.
+  double bhat[3]; ///< Magnetic field flux density \f$\mathbf{B}\f$. Vector.
+  double caxis[3]; ///< Reference cylinder orientation \f$\mathbf{\hat c}\f$. Vector.
+  int nBG; ///< Number of background voxels. Scalar.
+  int nFG; ///< Number of foreground voxels. Scalar.
+  unsigned start; ///< Starting index of a local process' portion of \f$\mathbf{\Detla B}\f$.
+  unsigned end; ///< Ending index of a local process' portion of \f$\mathbf{\Detla B}\f$.
+  unsigned range; ///< Size of a local process' portion of \f$\mathbf{\Detla B}\f$. End-start.
 };
 #endif  // INCLUDE_DATASPEC_H_
