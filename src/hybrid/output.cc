@@ -48,7 +48,7 @@ Output::Output() {
 Output::~Output() {}
 void Output::Init(const ArgHandler &arghandler, int rank, int size) {
   bool flg;
-  // TODO(timseries): replace sprintf with snprintf which is more secure.
+  // TODO(timseries): replace sprintf with snprintf which is more secure per Google standards.
   this->rank=rank;
   this->size=size;
   flg = arghandler.GetArg("-out", outdir);
@@ -113,18 +113,17 @@ void Output::Init(const ArgHandler &arghandler, int rank, int size) {
 }
 
 void Output::LocalArray(int onproc, Real* array, int ndims, int* dims, const char* arrayname) {
-  int			ndims0;
-  int			*dims0;
-  int			arraynamelength;
-  char		*arrayname0;
-  int			n;
-  Real	*array0;
+  int ndims0;
+  int *dims0;
+  int arraynamelength;
+  char *arrayname0;
+  int n;
+  Real *array0;
 
   if (rank != onproc && rank != 0) return;
 
   // if data is not on process 0, send data to process 0
   if (onproc != 0) {
-
     // send data
     if (rank == onproc) {
       n = 1;
@@ -192,53 +191,24 @@ void Output::LocalArray(int onproc, Real* array, int ndims, int* dims, const cha
       free(arrayname0);
       free(array0);
     }
-
   }
-
-  // THE FOLLOWING IS THE TRUE MPI IMPLEMENTATION. DUE TO A BUG ON AVOCA, THIS HAS BEEN REPLACED BY THE ABOVE
-  /*
-     if (rank != onproc) return;
-
-     int n = 1;
-     for (int i = 0; i < ndims; i++)
-     n *= dims[i];
-
-     MPI_File_write_shared(binfile, array, n, MPI_Real, MPI_STATUS_IGNORE);
-
-     if (ndims > 1) {
-     sprintf(tmpstr, "%s = reshape(fread(TmpChiMapOut.fid, %d, TmpChiMapOut.precision), [%d", arrayname, n, dims[0]);
-     for (int i = 1; i < ndims; i++) {
-     sprintf(tmpstr, "%s %d", tmpstr, dims[i]);
-     }
-     sprintf(tmpstr, "%s]);\n", tmpstr);
-     }
-     else {
-     sprintf(tmpstr, "%s = fread(TmpChiMapOut.fid, %d, TmpChiMapOut.precision);\n", arrayname, n);
-     }
-
-     MPI_File_write_shared(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
-  */
 }
 
 void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const char* arrayname) {
-  int			ndims0;
-  int			*dims0;
-  int			arraynamelength;
-  char		*arrayname0;
-  int			n;
-  bool		*array0;
-
+  int ndims0;
+  int *dims0;
+  int arraynamelength;
+  char *arrayname0;
+  int n;
+  bool *array0;
   if (rank != onproc && rank != 0) return;
-
   // if data is not on process 0, send data to process 0
   if (onproc != 0) {
-
     // send data
     if (rank == onproc) {
       n = 1;
       for (int i = 0; i < ndims; i++)
         n *= dims[i];
-
       arraynamelength = strlen(arrayname);
       MPI_Send(&ndims, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
       MPI_Send(dims, ndims, MPI_INT, 0, 1, MPI_COMM_WORLD);
@@ -246,7 +216,6 @@ void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const cha
       MPI_Send((char*)arrayname, arraynamelength, MPI_CHAR, 0, 3, MPI_COMM_WORLD);
       MPI_Send(array, n, MPI_CHAR, 0, 4, MPI_COMM_WORLD);
     }
-
     // receive data
     if (rank == 0) {
       MPI_Recv(&ndims0, 1, MPI_INT, onproc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -264,7 +233,6 @@ void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const cha
       MPI_Recv(array0, n, MPI_CHAR, onproc, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
-
   // otherwise, set values and pointers as though process 0 had sent data to itself
   else {
     ndims0 = ndims;
@@ -275,13 +243,10 @@ void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const cha
     for (int i = 0; i < ndims0; i++)
       n *= dims0[i];
   }
-
   // On process 0, write the data to file
   if (rank == 0) {
-
     // write array to binary file
     MPI_File_write(binfile, array0, n, MPI_CHAR, MPI_STATUS_IGNORE);
-
     // write read-in matlab code to matlab file
     if (ndims > 1) {
       sprintf(tmpstr, "%s = reshape(fread(TmpChiMapOut.fid, %d, 'uint8'), [%d", arrayname0, n, dims0[0]);
@@ -293,9 +258,7 @@ void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const cha
     else {
       sprintf(tmpstr, "%s = fread(TmpChiMapOut.fid, %d, 'uint8');\n", arrayname0, n);
     }
-
     MPI_File_write(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
-
     // if data was sent from another process, free the memory that was allocated
     if (onproc != 0) {
       free(dims0);
@@ -306,15 +269,14 @@ void Output::LocalArray(int onproc, bool* array, int ndims, int* dims, const cha
 }
 
 void Output::DistrArray(Real* array, int localsize, int ndims, int* dims, const char* arrayname) {
-  int			n;
-  Real	*array0 = NULL;
+  int n;
+  Real *array0 = NULL;
   MPI_Request req[2];
   // Send data to process 0
   if (rank>0){
     MPI_Isend(&localsize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &req[0]);
     MPI_Isend(array, localsize, MPI_Real, 0, 1, MPI_COMM_WORLD, &req[1]);
   }
-
   // On process 0, receive and write data to file.
   if (rank == 0) {
 
@@ -330,8 +292,6 @@ void Output::DistrArray(Real* array, int localsize, int ndims, int* dims, const 
       if (rank==0) printroot("MPI_COMM_WORLD: %d\n", MPI_COMM_WORLD);
       if (p>0){
         MPI_Recv(&localsize, 1, MPI_INT, p, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-
         // realloc memory if the localsize has increased
         if (n < localsize) {
           if (rank==0) printroot( "reallocating  ...\n");
@@ -371,39 +331,14 @@ void Output::DistrArray(Real* array, int localsize, int ndims, int* dims, const 
 
     MPI_File_write(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
   }
-
   // Free array
   if (array0 != NULL)	free(array0);
-
   // Wait for requests to complete
   if (rank==0) printroot( "waiting ...\n");
   if (rank>0){
     MPI_Waitall(2, req, MPI_STATUSES_IGNORE);
   }
   if (rank==0) printroot( "done waiting ...\n");
-  // THE FOLLOWING IS THE TRUE MPI IMPLEMENTATION. DUE TO A BUG ON AVOCA, THIS HAS BEEN REPLACED BY THE ABOVE
-  /*
-    int n = 1;
-    for (int i = 0; i < ndims; i++)
-    n *= dims[i];
-
-    MPI_File_write_ordered(binfile, array, localsize, MPI_Real, MPI_STATUS_IGNORE);
-
-    if (rank == 0) {
-    if (ndims > 1) {
-    sprintf(tmpstr, "%s = reshape(fread(TmpChiMapOut.fid, %d, TmpChiMapOut.precision), [%d", arrayname, n, dims[0]);
-    for (int i = 1; i < ndims; i++) {
-    sprintf(tmpstr, "%s %d", tmpstr, dims[i]);
-    }
-    sprintf(tmpstr, "%s]);\n", tmpstr);
-    }
-    else {
-    sprintf(tmpstr, "%s = fread(TmpChiMapOut.fid, %d, TmpChiMapOut.precision);\n", arrayname, n);
-    }
-
-    MPI_File_write_shared(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
-    }
-  */
 }
 
 void Output::Close() {
@@ -413,26 +348,15 @@ void Output::Close() {
   if (rank == 0) {
     sprintf(tmpstr, "fclose(TmpChiMapOut.fid);\n");
     sprintf(tmpstr, "%sclear TmpChiMapOut\n", tmpstr);
-    //MPI_File_write_shared(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
     MPI_File_write(matfile, tmpstr, strlen(tmpstr), MPI_CHAR, MPI_STATUS_IGNORE);
   }
-
   MPI_Barrier(MPI_COMM_WORLD);
-
   // Close binary file
-  //	MPI_File_get_position_shared(binfile, &offset);
-  //	MPI_File_get_byte_offset(binfile, offset, &disp);
-  //	MPI_File_set_size(binfile, disp);
   if (rank == 0)
     MPI_File_close(&binfile);
-
   // Close matlab file
-  //	MPI_File_get_position_shared(matfile, &offset);
-  //	MPI_File_get_byte_offset(matfile, offset, &disp);
-  //	MPI_File_set_size(matfile, disp);
   if (rank == 0)
     MPI_File_close(&matfile);
-
   // Close error log file and remove if empty
   if (ftell(errfile) == 0) {
     fclose(errfile);
@@ -442,7 +366,6 @@ void Output::Close() {
   else {
     fclose(errfile);
   }
-
   // Close files
   initialised = false;
   free(tmpstr);

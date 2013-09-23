@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts and Amanda Ng
+// Copyright (c) 2013, Amanda Ng and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -37,16 +37,31 @@
 #include "hybrid/dataspec.h"
 #include "hybrid/arghandler.h"
 
+/**
+* ModelMap class. Used to compute and store the binary mask of foreground voxels (mask) and determine the cylinder orientations.
+*/
 class ModelMap {
  public:
+/**
+* DataSpec constructor.
+*/
   ModelMap();
+/**
+* DataSpec destructor.
+*/
   virtual ~ModelMap();
+/**
+* Class initialization method. 
+* @param &dspec pointer to an object of DataSpec.
+* @param &arghandler pointer to an object of Arghandler.
+* @return True if successful, false otherwise.
+*/
   bool Create(DataSpec &dspec, const ArgHandler &arghandler);
   void close(void);
-  int *mask; //!< Brief size N, entries corresponding to spherical voxel (-1) or cylyindrical voxel (n>0, n is the index of the cylinder)
-  int ncyls; //!< Brief number of cylinders in the dataset
-  Real *x; //!< Brief size ncyls, the vector of x components of the cylindrical voxel direction
-  Real *y; //!< Brief size ncyls, the y component of the cylindrical voxel direction
-  Real *z; //!< Brief size ncyls, the y component of the cylindrical voxel direction
+  int *mask; ///< Array of size N, entries corresponding to spherical voxel (-1) or cylyindrical voxel (n>0, n is the index of the cylinder)
+  int ncyls; ///< Number of cylinders in the dataset
+  Real *x; ///< Array of size ncyls, the vector of x components of the cylindrical voxel direction
+  Real *y; ///< Array of size ncyls, the y component of the cylindrical voxel direction
+  Real *z; ///< Array of size ncyls, the z component of the cylindrical voxel direction
 };
 #endif  // INCLUDE_MODELMAP_H_

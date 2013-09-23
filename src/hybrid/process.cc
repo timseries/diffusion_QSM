@@ -1,5 +1,5 @@
 
-// Copyright (c) 2013, Amanda Ng and Timothy Roberts
+// Copyright (c) 2013, Amanda Ng, Owen Kaluza, and Timothy Roberts
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -91,9 +91,6 @@ bool Process::Init(int argc, char** args) {
   //allocate the partitions evenly at first, use profiling data to reallocate later
   dspec.AllocatePartitions(false);
   if (!loadDeltaB()) goto exitnow;
-  // printroot("rank: %d\n",rank);
-  // printroot("dspec start: %d\n", dspec.start);
-  // printroot("dspec end: %d\n", dspec.end);
 
   myout.DistrArray(deltab, dspec.range, 3, dspec.size, "deltab");
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
@@ -155,12 +152,9 @@ void Process::HandleArgs(int argc, char** args) {
 void Process::StartMPI(int argc, char** args) {
   MPI_Init(&argc, &args);
  #ifdef HPM
-   hpmInit();
-//   hpmStart("main function");
+  hpmInit();
+  hpmStart("main function");
  #endif
-// #ifdef USE_FOURIER_SPHERES
-// fftw_mpi_init();
-// #endif
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank==0) printroot("\n------------------------------------------\n");
@@ -298,15 +292,6 @@ bool Process::loadMask() {
 }
 
 bool Process::FullPass() {
-  // Landweber iteration
-  // x1_{n+1} = x_{n} - alpha * A' * (A * x_{n} - b) - beta * D' * (D * x_{n})
-  // where b     = deltab,
-  //       x     = chi,
-  //       alpha = 0.5 * tau,
-  //       beta  = 0.5 * tau,
-  //       tau   = 2/norm(A), and
-  //       D     = represents a 3D laplacian filter
-
   Real tau = 0.15, alpha = 0.75, beta = 0.25;
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
   Real *cylColumns;
@@ -404,7 +389,7 @@ bool Process::FullPass() {
     o = 0;
     for (p = 0; p < dspec.N; p++) {
       if (mask[p]) {
-        // P->x[o] = chi[p];
+        P->x[o] = chi[p];
         o++;
       }
     }
@@ -687,11 +672,6 @@ bool Process::FullPass() {
 
   return true;
 }
-//returns an array result which is: multiplier*multipicand+addend. Dir is an indexing option (true->forward,false->backward) 
-// Eg.
-// Forwards: Ax_b=Ax-b
-// Backwards: AtAx_b=A'(Ax-b)
-// Calls Mult version of this method, which just does  a multiply when no addend is specified.
 void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* multiplicand_fidelity, Real* multiplicand_regularizer, Real* addend, int* workmatrix, bool dir, int iteration) {
 
   float Lfactors[3] = {-1, 0.10416667f, 0.03125f};
@@ -757,7 +737,6 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     {
       int end = start + BLOCK;
       if (end > P->dspec.end) end = P->dspec.end;
-      //printf("%d ", end);
       cl_set_arg(cl, P->kernel_iterate2, 15, start);
       cl_set_arg(cl, P->kernel_iterate2, 16, end);
       cl_set_arg(cl, P->kernel_iterate2, 17, P->dspec.start);
@@ -776,15 +755,9 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     if (dir) {
         memset(P->Ax_b, 0, (P->dspec.range) * sizeof(Real));
         memset(P->Dx, 0, (P->dspec.range) * sizeof(Real));
-        // #ifdef USE_FOURIER_SPHERES
-        // memset(P->Ax_spheres, 0, (P->dspec.range) * sizeof(Real));
-        // #endif
       }else{
         memset(P->AtAx_b, 0, (P->dspec.nFG) * sizeof(Real));
         memset(P->DtDx, 0, (P->dspec.nFG) * sizeof(Real));
-        // #ifdef USE_FOURIER_SPHERES
-        // memset(P->AtAx_spheres, 0, (P->dspec.nFG) * sizeof(Real));
-        // #endif
     }
     //add the result form the fourier k-space product here, if used
 #ifdef USE_FOURIER_SPHERES
@@ -869,23 +842,26 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
               //do the spherical convolution here
               result_fidelity[index2] += kernel.skernel[rx+kernel.halfsize + (ry+kernel.halfsize)*kernel.yoffset + (rz+kernel.halfsize)*kernel.zoffset] * multiplicand_fidelity[index1];
 #endif
-              workmatrix[p]+=SPHERICAL_WORK;
+              workmatrix[p]+=((int) dir) * SPHERICAL_WORK;
             }
             else if (P->PreCalcCylinders) {
               result_fidelity[index2] += P->cylColumns[mix*P->dspec.range + p-P->dspec.start] * multiplicand_fidelity[index1];
-              workmatrix[p]+=CYLINDRICAL_PRECALC_WORK;
             }
             else if (rx == 0 && ry == 0 && rz == 0) {
               result_fidelity[index2] += kernel.ctr[mix] * multiplicand_fidelity[index1];
-              workmatrix[p]+=CYLINDRICAL_CENTER_WORK;
             }
             else {
               result_fidelity[index2] += kernel.GetCyl(mix, rx, ry, rz) * multiplicand_fidelity[index1];
-              workmatrix[p]+=CYLINDRICAL_CALC_WORK;
             }
             if (_rx <= 1 && _ry <= 1 && _rz <= 1)
             {
               result_regularizer[index2] += Lfactors[_rx + _ry + _rz] *  multiplicand_regularizer[index1];
+            }
+            //update workmatrix here
+            if (iteration==0 && dir) {
+              workmatrix[index2]+=(mix==-1) ? SPHERICAL_WORK : 
+                  (rx == 0 && ry == 0 && rz == 0) ? CYLINDRICAL_CENTER_WORK : 
+                  CYLINDRICAL_CALC_WORK;
             }
           }
         }

@@ -42,22 +42,52 @@
 #include "hybrid/kernel.h"
 
 #ifdef USE_FOURIER_SPHERES
-//#include <complex.h>
 #include <fftw3.h>
 #endif
 
-
+/**
+* Problem class. Used to store the temporary data members specific to solving the landweber iterations of the process class. 
+*/
 class Problem {
  public:
+/**
+* Problem constructor.
+*/
   Problem();
+/**
+* Problem constructor.
+* @param &kernel pointer to an object of Kernel.
+* @param &dspec pointer to an object of DataSpec.
+* @param &arghandler pointer to an object of ArgHandler.
+* @param tau regularization parameter \f$ \tau \f$.
+* @param alpha regualrization parameter \f$ \alpha \f$.
+* @param beta regualrization parameter \f$ \beta \f$.
+* @param rank Rank of this process.
+*/
   Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real tau, Real alpha, Real beta, int rank);
+/**
+* Method to reallocate the elements of this problem class based on new ranges of \f$ \mathbf{\Delta B} \f$ for each process.
+* @param &kernel pointer to an object of Kernel.
+* @param &dspec pointer to an object of DataSpec.
+*/
   void Reallocate(Kernel &kernel, DataSpec &dspec);
+/**
+* Method to allocate the indices of foreground spheres and cylinders into an array FGindicesUniform such that the ratio of cylinders/spheres in any contiguous portion of this array is relatively constant. This is used for load balancing the thread parallelization of the Mulatadd method in Process.
+* @param mask pointer to the foreground index binary mask.
+* @param rank rank of this process
+* @param &kernel pointer to an object of Kernel.
+* @param &dspec pointer to an object of DataSpec.
+* @see Process::MultAdd
+*/
   void UniformFGIndices(bool* mask, int rank, Kernel &kernel, DataSpec &dspec);
+/**
+* Problem destructor.
+*/
   virtual ~Problem();
   DataSpec &dspec;
 
-  Real *Ax_b;  
-  Real *AtAx_b;
+  Real *Ax_b; ///< The result of computing Ax-b.
+  Real *AtAx_b; ///< The result of computing A'(Ax-b).
 #ifdef USE_FOURIER_SPHERES
   Real *Ax_spheres; ///< Store N-sized version of x for computing Ax in Fourier domain for spheres.
   fftwf_complex *x_full_fft_out; ///< FFT of \f$ \mathbf{x} \f$.
@@ -70,15 +100,15 @@ class Problem {
 #endif
   Real *Dx; ///< Matrix to store the discrete Laplacian kernel.
   Real *DtDx; ///< Matrix to store the inverse discrete Laplacian kernel.
-  Real *x; ///< The current solution \$f \mathbf{x} \$f of \$f \mathbf{y=Ax+b} \$f. 
-  int *workmatrix; //cumulative work matrix over the volume
+  Real *x; ///< The current solution \f$ \mathbf{x} \f$ of \f$ \mathbf{y=Ax+b} \f$. 
+  int *workmatrix; ///<cumulative work matrix over the volume.
   
-  bool PreCalcCylinders;
-  Real *cylColumns;
-  int *FGindices; // indices corresponding to foreground elements
-  int *FGindicesUniform; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
-  int *FGindicesCyl; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
-  int *FGindicesSphere; // indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  bool PreCalcCylinders; ///< Binary flag, true if memory allows for cylinder elements of kernel can be pre-computed. False otherwise.
+  Real *cylColumns; ///< Array storing the columns of cylinder kernels in \f$ \mathbf{A} \f$.
+  int *FGindices; ///< indices corresponding to foreground elements
+  int *FGindicesUniform; ///< indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  int *FGindicesCyl; ///< indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
+  int *FGindicesSphere; ///< indices corresponding to foreground elements, reordered so that the distribution of indices of cylinders and spheres is as uniform as possible along the array
 
 #ifdef USE_OPENCL
   OpenCL* cl;

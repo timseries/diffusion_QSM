@@ -46,7 +46,6 @@
 #include "hybrid/modelmap.h"
 
 #ifdef USE_FOURIER_SPHERES
-// #include <complex.h>
 #include <fftw3.h>
 #endif
 
@@ -97,7 +96,7 @@ void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
       nnz--;
     }
   }
-  //take the FFT of the spherical kernel here
+  //take the FFT of the spherical kernel here. This may still be incorrect.
 #ifdef USE_FOURIER_SPHERES
   int p = 0;
   int p_skernel = 0;
@@ -110,13 +109,6 @@ void Kernel::CreateSphericalKernel(const DataSpec &dspec) {
         //compute the wrapped index for skernel_size_N
         if ((x < 0) || (y < 0) || (z < 0)) {
           p_skernel = dspec.N;
-          // printroot("dspec.N: %d\n",dspec.N);
-          // printroot("size: %d\n",size);
-          // printroot("p_skernel: %d\n",p_skernel);
-          // printroot("abs(...): %d\n",abs(x + y*yoffset + z*zoffset));
-          // printroot("x: %d\n",x);
-          // printroot("y*yoffset: %d\n",y*yoffset);
-          // printroot("halfsize: %d\n",halfsize);
           p_skernel -= abs(x + y*yoffset + z*zoffset);
         } else {
           p_skernel = 0;
@@ -222,8 +214,6 @@ void Kernel::InitMixedModel(const DataSpec &dspec) {
 bool Kernel::Create(const models &model,
                const DataSpec &dspec,
                const Real &threshold) {
-  // if (rank==0) printroot("Creating kernel\n");
-
   this->model = model;
   this->threshold = threshold;
   B0 = dspec.B0;
@@ -281,23 +271,16 @@ bool Kernel::Create(const models &model,
   // Create kernel
   if (model == MODEL_SPHERICAL) {
     CreateSphericalKernel(dspec);
-
-  //    else if (model == MODEL_CYLINDRICAL)
-  //            CreateCylindricalKernel(dspec);
-
   } else {
     CreateSphericalKernel(dspec);
     InitMixedModel(dspec);
   }
-
-  // if (rank==0) printroot("   non-zeros = %d\n", nnz);
-
   return true;
 }
 Real Kernel::Get(int x, int y, int z, int o) {
   int ix = x + y*yoffset + z*zoffset;
   int mix;
-  if (model == MODEL_MIXED &&  (mix = modelmap.mask[o]) != -1) {
+  if (model == MODEL_MIXED && (mix = modelmap.mask[o]) != -1) {
     x -= halfsize;
     y -= halfsize;
     z -= halfsize;
@@ -321,9 +304,6 @@ Real Kernel::Get(int x, int y, int z, int o) {
       }
     }
   } else {
-  //    else if (model == MODEL_CYLINDRICAL) {
-  //            return ckernel[ix];
-  //    }
     return skernel[ix];
   }
 }

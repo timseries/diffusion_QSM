@@ -1,4 +1,4 @@
-// Copyright (c) 2013, Timothy Roberts, Amanda Ng
+// Copyright (c) 2013, Amanda Ng, Timothy Roberts 
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -23,7 +23,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Author: timothy.daniel.roberts@gmail.com, amanda.ng@gmail.com
+// Author: amanda.ng@gmail.com, timothy.daniel.roberts@gmail.com
 
 /*! \file output.h
     \brief Output class definitions file.
@@ -38,26 +38,68 @@
 #include "hybrid/common.h"
 #include "hybrid/arghandler.h"
 
+/**
+* Output class. Used to store store the binary output data \f$\Chi\f$ as well as the binary mask showing locations of foreground voxels (1) or background voxels (0).
+*/
 class Output {
  public:
+/**
+* Output constructor.
+*/
   Output();
+/**
+* Output destructor.
+*/
   virtual ~Output();
+/**
+* Method for intiializing the class. Opens matlab and binary files for writing, and redirects standard error (stderr) to an output error file errfile.
+* @param &arghandler Object pointer of class Arghandler.
+* @param rank Rank of this process.
+* @param size Number of MPI processes.
+* @see Arghandler
+*/
   void Init(const ArgHandler &arghandler, int rank, int size);
+/**
+* Method for writing a local Real array to a binary file.
+* @param onproc The process which performs the write.
+* @param array Real array to write to binary file. 
+* @param ndims Number of dimensions of array.
+* @param dims array of length ndims, each element being the size of array along that dim.
+* @param arrayname Name of matlab variable that matlab code will read binary array into.
+*/
   void LocalArray(int onproc, Real* array,
                   int ndims, int* dims, const char* arrayname);
+/**
+* Method for writing a local bool array to a binary file.
+* @param onproc The process which performs the write.
+* @param array bool array to write to binary file. 
+* @param ndims Number of dimensions of array.
+* @param dims array of length ndims, each element being the size of array along that dim.
+* @param arrayname Name of matlab variable that matlab code will read binary array into.
+*/
   void LocalArray(int onproc, bool* array,
                   int ndims, int* dims, const char* arrayname);
+/**
+* Method for writing a distributed (MPI)Real array to a binary file and matlab code to read this binary file (into matlab).
+* @param array Real array to write to binary file. 
+* @param ndims Number of dimensions of array.
+* @param dims array of length ndims, each element being the size of array along that dim.
+* @param arrayname Name of matlab variable that matlab code will read binary array into.
+*/
   void DistrArray(Real* array, int localsize,
                   int ndims, int* dims, const char* arrayname);
+/**
+* Method for closing the binary and matlab files.
+*/
   void Close();
-  char *outdir;
-  int rank;
-  int size;
+  char *outdir; ///< Output directory where binary output files are written.
+  int rank; ///< Array size N, 1 where there is a foreground voxel, 0 background
+  int size; ///< Number of processes (in the MPI communication world).
  private:
-        MPI_File binfile;
-        MPI_File matfile;
-        FILE *errfile;
-        bool initialised;
-        char *tmpstr;
+        MPI_File binfile; ///< Temporary binary file handle.
+        MPI_File matfile; ///< Temporary matlab file handle.
+        FILE *errfile; ///< File which sterr are redirected to.
+        bool initialised; ///< Set to true when Init is run successfully (files in open state). Set to false after Close finishes.
+        char *tmpstr; ///< Character array used to buffer writes to local/distributed arrays.
 };
 #endif  // INCLUDE_OUTPUT_H_

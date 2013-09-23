@@ -27,7 +27,6 @@
 
 /*! \file dataspec.h
   \brief Dataspec class declarations file.
-
 */
 
 #ifndef INCLUDE_DATASPEC_H_
@@ -37,15 +36,39 @@
 #include "hybrid/arghandler.h"
 #include "hybrid/util.h"
 
+/**
+* DataSpec class. Used to store the members and methods used in keeping track of local (and global) allocations of  \f$\mathbf{\Delta B}\f$ voxels.
+*/
 class DataSpec {
  public:
+/**
+* DataSpec constructor.
+*/
   DataSpec();
+/**
+* DataSpec destructor.
+*/
   virtual ~DataSpec();
+/**
+* Class initialization method. 
+* @param &arghandler pointer to an object of Arghandler.
+* @param rank the rank of this process.
+* @param mpi_world_size the number of MPI processes.
+* @return True if successful, false otherwise.
+*/
   bool Create(const ArgHandler &arghandler, int rank, int mpi_world_size);
+/**
+* Method to allocate partitions to processes in one of two modes. Should only be called once, and calculates the cumulative work of the workmatrix (initialized by the first MultAdd in process).
+* @param orb_flag True if using ORB to allocate portions of \f$\mathbf{\Delta B}\f$ to processes, false otherwise.
+* @see Process::MultAdd()
+*/
   void AllocatePartitions(bool orb_flag);
+/**
+* Method to calculate partitions based on the size of an N-sized workmatrix using orthogonal recursive bisection concept.
+*/
   void PartitionByORB(); 
-  int size[3];  ///> Dimensions of the signal (x,y,z).
-  int N; ///> Total number of voxels in the \f$\mathbf{\Delta B}\f$ dataset.
+  int size[3];  ///< Dimensions of the signal (x,y,z).
+  int N; ///< Total number of voxels in the \f$\mathbf{\Delta B}\f$ dataset.
 #ifdef USE_FOURIER_SPHERES
   int N_fft; ///> Number of elements in a Fourier transformed signal of length \f$ N \f$.
 #endif
@@ -55,7 +78,7 @@ class DataSpec {
   int rank; ///< The rank of the process which has this dataspec.
   int *orb_divisions; ///< Array of divisions from orb algorithm.
   int orb_divisions_size; ///< Size of the array orb_dvisions
-  int *workmatrix; ///<  Array (size N) with comulative work required to process each voxel in \f$\mathbf{B}\f$ (see ORB documentation).
+  int *workmatrix; ///<  Array (size N) with comulative work required to process each voxel in \f$\mathbf{\Delta B}\f$.
   double B0; ///< External static magnetic field \f$B_0\f$. Scalar.
   double bhat[3]; ///< Magnetic field flux density \f$\mathbf{B}\f$. Vector.
   double caxis[3]; ///< Reference cylinder orientation \f$\mathbf{\hat c}\f$. Vector.

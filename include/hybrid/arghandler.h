@@ -35,16 +35,48 @@
 
 #include "hybrid/common.h"
 
+/**
+* ArHandler class. Used to parse the command line arguments.
+*/
 class ArgHandler {
  public:
+/**
+* ArgHandler constructor.
+*/
   ArgHandler();
+/**
+* ArgHandler destructor.
+*/
   virtual ~ArgHandler();
+/**
+* Class initialization method. 
+* @param argc Number of command line arguments
+* @param args The command line arguments
+*/
   void Init(int argc, char** args);
+/**
+* Getter method (string version).
+* @param *option The command line option we wish to fetch. 
+* @param *&str A pointer to a string to which the command line option value is copied.
+* @return True if the command line option is found. False otherwise.
+*/
   bool GetArg(const char* option, char *&str) const ;
+/**
+* Getter method (Real version).
+* @param *option The command line option we wish to fetch. 
+* @param &value A pointer to a Real to which the command line option value is copied.
+* @return True if the command line option is found. False otherwise.
+*/
   bool GetArg(const char* option, Real &value) const ;
+/**
+* Getter method (int version).
+* @param *option The command line option we wish to fetch. 
+* @param &value A pointer to an int to which the command line option value is copied.
+* @return True if the command line option is found. False otherwise.
+*/
   bool GetArg(const char* option, int &value) const;
  private:
-  int argc;
-  char** args;
+  int argc; ///< Number of command line arguments
+  char** args; ///< The command line arguments
 };
 #endif  // INCLUDE_HYBRID_ARGHANDLER_H_

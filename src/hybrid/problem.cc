@@ -92,10 +92,6 @@ Problem::Problem(Kernel &kernel, DataSpec &dspec, ArgHandler &arghandler, Real t
   if (rank==0) printroot("   Creating x array ...\n");
   x = (Real*) calloc(dspec.nFG, sizeof(Real));
 
-// #ifdef DEBUG
-//initialize x to all one's to debug Ax
-    memset(x, 60, dspec.nFG*sizeof(Real));
-// #endif
     
   //==================================================================================================================
 
