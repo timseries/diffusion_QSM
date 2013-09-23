@@ -1,3 +1,6 @@
 [submodule "wiki"]
 	path = wiki
 	url = https://bitbucket.org/timseries/dqsm.git/wiki
+[submodule "doc/html"]
+	path = doc/html
+	url = https://timseries@bitbucket.org/timseries/dqsm_api.bitbucket.org.git

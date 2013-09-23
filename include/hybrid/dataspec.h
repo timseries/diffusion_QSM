@@ -45,7 +45,7 @@ class DataSpec {
   void AllocatePartitions(bool orb_flag);
   void PartitionByORB(); 
   int size[3];  ///> Dimensions of the signal (x,y,z).
-  int N; ///> Total number of voxels in the \f$\mathbf{\Detla B}\f$ dataset.
+  int N; ///> Total number of voxels in the \f$\mathbf{\Delta B}\f$ dataset.
 #ifdef USE_FOURIER_SPHERES
   int N_fft; ///> Number of elements in a Fourier transformed signal of length \f$ N \f$.
 #endif
@@ -61,8 +61,8 @@ class DataSpec {
   double caxis[3]; ///< Reference cylinder orientation \f$\mathbf{\hat c}\f$. Vector.
   int nBG; ///< Number of background voxels. Scalar.
   int nFG; ///< Number of foreground voxels. Scalar.
-  unsigned start; ///< Starting index of a local process' portion of \f$\mathbf{\Detla B}\f$.
-  unsigned end; ///< Ending index of a local process' portion of \f$\mathbf{\Detla B}\f$.
-  unsigned range; ///< Size of a local process' portion of \f$\mathbf{\Detla B}\f$. End-start.
+  unsigned start; ///< Starting index of a local process' portion of \f$\mathbf{\Delta B}\f$.
+  unsigned end; ///< Ending index of a local process' portion of \f$\mathbf{\Delta B}\f$.
+  unsigned range; ///< Size of a local process' portion of \f$\mathbf{\Delta B}\f$. End-start.
 };
 #endif  // INCLUDE_DATASPEC_H_

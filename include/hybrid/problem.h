@@ -42,6 +42,7 @@
 #include "hybrid/kernel.h"
 
 #ifdef USE_FOURIER_SPHERES
+//#include <complex.h>
 #include <fftw3.h>
 #endif
 

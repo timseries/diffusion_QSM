@@ -40,6 +40,7 @@
 #include "hybrid/modelmap.h"
 
 #ifdef USE_FOURIER_SPHERES
+// #include <complex.h>
 #include <fftw3.h>
 #endif
 

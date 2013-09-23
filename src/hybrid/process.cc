@@ -61,6 +61,7 @@ extern "C" {
 #endif
 
 #ifdef USE_FOURIER_SPHERES
+//#include <complex.h>
 #include <fftw3.h>
 #endif
 
@@ -90,9 +91,9 @@ bool Process::Init(int argc, char** args) {
   //allocate the partitions evenly at first, use profiling data to reallocate later
   dspec.AllocatePartitions(false);
   if (!loadDeltaB()) goto exitnow;
-  printroot("rank: %d\n",rank);
-  printroot("dspec start: %d\n", dspec.start);
-  printroot("dspec end: %d\n", dspec.end);
+  // printroot("rank: %d\n",rank);
+  // printroot("dspec start: %d\n", dspec.start);
+  // printroot("dspec end: %d\n", dspec.end);
 
   myout.DistrArray(deltab, dspec.range, 3, dspec.size, "deltab");
   myout.LocalArray(0, mask, 3, dspec.size, "mask");
@@ -114,7 +115,9 @@ bool Process::Init(int argc, char** args) {
   }
   // CREATE KERNEL
   if (!kernel.Create(model, dspec, threshold)) goto exitnow;
+  printroot("start fft skernel\n");
   return 1;
+
 exitnow:
   return 0;
 }
@@ -216,7 +219,6 @@ bool Process::loadDeltaB() {
       byteswap((char*)castbuf, dspec.range, sizeof(double));
     }
 MPI_Barrier(MPI_COMM_WORLD);	
- if (rank==0) printroot("everyone read the mpi file and byteswapped it\n");
     for (int i = 0; i < dspec.range; i++)
       deltab[i] = (float) castbuf[i];
     free(castbuf);
@@ -402,7 +404,7 @@ bool Process::FullPass() {
     o = 0;
     for (p = 0; p < dspec.N; p++) {
       if (mask[p]) {
-        P->x[o] = chi[p];
+        // P->x[o] = chi[p];
         o++;
       }
     }
@@ -482,12 +484,11 @@ bool Process::FullPass() {
   do {
 
     tIterStart1 = MPI_Wtime();
-    if (rank==0) printroot("      Iteration %d: ", iteration);
+    if (rank==0) printroot("      Iteration %d: \n", iteration);
 
     //////////////////////
     // Ax_b = A * x - b //
     //////////////////////
-
 // solve in the Fourier domain for the spherical portion of the kernel first
 #ifdef USE_FOURIER_SPHERES
     //copy current x (N_fg)to Ax_s (N) before performing 
@@ -518,7 +519,7 @@ bool Process::FullPass() {
 #ifdef USE_FOURIER_SPHERES
     //copy current Ax_b to AtAx_spheres
     memset(P->AtAx_spheres, 0, dspec.N*sizeof(Real));
-    for (o = dspec.start; o < dspec.end; o++) {
+    for (int o = dspec.start; o < dspec.end; o++) {
       P->AtAx_spheres[o]=P->Ax_b[o - dspec.start];
     }
     //perform the fft of Ax (AtAx_sphers)
@@ -527,16 +528,17 @@ bool Process::FullPass() {
          //note the minus sign on the complex value for the conjugate product
     for (int k = 0; k < dspec.N_fft; k++) {
       P->Ax_b_fft[o][0]*=kernel.skernel_fft[k][0];
-      P->Ax_b_fft[o][1]*=-kernel.skernel_fft[k][1];
-    }
+      P->Ax_b_fft[o][1]*=kernel.skernel_fft[k][1];
+    }    
     //since we've taken the fourier transform of only a part of Ax_b and multiplied by a constant, to get the 
              //Fourier transform of Ax_b we need to sum accross processes. We're using linearity of fourier transform here.
     MPI_Allreduce(MPI_IN_PLACE, P->Ax_b_fft, P->dspec.N_fft, MPI_COMPLEX, MPI_SUM, MPI_COMM_WORLD);             
     //perform the inverse fft of the product
     fftwf_execute(P->Ax_b_fft_plan_inverse);
 #endif
+    if (rank==0) printroot("starting AtAx in spatial domain\n");
     MultAdd(P->AtAx_b,P->DtDx,P->Ax_b,P->Dx,NULL,dspec.workmatrix,false,iteration);
-
+    if (rank==0) printroot("finished AtAx in spatial domain\n");
 
     tIterEnd2 = MPI_Wtime();
     tsecs = tIterEnd2 - tIterStart2;
@@ -792,7 +794,7 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
           result_fidelity[p - P->dspec.start] += P->Ax_spheres[p]/dspec.N;
         }
       } else {
-        for (o = 0; o < P->dspec.nFG; p++){
+        for (o = 0; o < P->dspec.nFG; o++){
           if (kernel.modelmap.mask[P->FGindicesUniform[o]]==-1) {;
             result_fidelity[o] += P->AtAx_spheres[P->FGindicesUniform[o]]/dspec.N;
           }
@@ -900,7 +902,20 @@ void Process::MultAdd(Real* result_fidelity, Real* result_regularizer, Real* mul
     numspheres=0;
     }//end omp parallel section
 #endif
+    //calc rms of Ax-b
+    double rms_prod=0;
 
+    if (dir) {
+      for (p = 0; p < dspec.range; p++) {
+        rms_prod += result_fidelity[p] * result_fidelity[p];
+      }
+      printroot("Ax_b rms: %0.3e \n",rms_prod);
+    } else {
+      for (p = 0; p < dspec.nFG; p++) {
+        rms_prod += result_fidelity[p] * result_fidelity[p];
+      }
+      printroot("AtAx_b rms: %0.3e \n",rms_prod);
+    }
 }
 bool Process::WriteOut(){
   char *filepath;
