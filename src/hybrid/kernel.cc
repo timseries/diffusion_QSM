@@ -249,9 +249,9 @@ bool Kernel::Create(const models &model,
   long mindatasize = dspec.size[0] < dspec.size[1] &
       dspec.size[0] < dspec.size[2] ? dspec.size[0] :
       dspec.size[1] < dspec.size[2] ? dspec.size[1] : dspec.size[2];
-  // if (size > maxdatasize * 2 + 1) size = maxdatasize * 2 + 1;
-  if (size > mindatasize * 2 + 1) size = mindatasize;
-  if (size/2 == size/2.0) size--;
+  if (size > maxdatasize * 2 + 1) size = maxdatasize * 2 + 1;
+  // if (size > mindatasize * 2 + 1) size = mindatasize;
+  // if (size/2 == size/2.0) size--;
 
   //  if (rank==0) printroot("   threshold = %0.3e\n", threshold);
   //  if (rank==0) printroot("   kernel size = %d\n", size);
