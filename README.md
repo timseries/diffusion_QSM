@@ -6,4 +6,3 @@ The goal of this project is to accelerate the reconstruction of Quantitative Sus
 QSM is an important tool for studying the levels of iron in the brain, which has been linked to neurological disorders such as Alzheimer's disease, Parkinson's disease, and multiple sclerosis. Additionally, QSM has been used to study the accumulation of iron as the brain ages, which can impair motor control and cognition later in life.
 
 This project is done as part of a Google Summer of Code (2013) collaboration.
-
